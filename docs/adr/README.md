@@ -13,3 +13,4 @@ MADR-style, one file per decision, numbered `NNNN-slug.md`. Never edit an accept
 | [0007](0007-rest-openapi.md) | REST + OpenAPI | accepted |
 | [0008](0008-authentication.md) | Authentication | proposed |
 | [0009](0009-deployment.md) | Deployment | proposed |
+| [0010](0010-test-layout.md) | Root tests/ by type | accepted |

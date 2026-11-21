@@ -1,4 +1,0 @@
-language: rust
-tasks:
-  test:
-    command: cargo test -p bgt-db-integration

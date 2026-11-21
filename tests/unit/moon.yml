@@ -1,0 +1,9 @@
+language: typescript
+tasks:
+  backend:
+    command: cargo test -p bgt-backend
+    options: { runFromWorkspaceRoot: true }
+  frontend:
+    command: npx jest
+  test:
+    deps: [~:backend, ~:frontend]

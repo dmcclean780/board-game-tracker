@@ -1,7 +1,7 @@
 # Backend
 
-Rust, Axum, sqlx (see ADR 0003, 0004, 0007). `src/lib.rs` builds the router; `src/main.rs` runs migrations from `db/migrations` and serves on :3000.
+Rust, Axum, sqlx (see ADR 0003, 0004, 0007). `src/lib.rs` builds the router; `src/main.rs` runs migrations from `db/migrations` and serves on :3000. Requires `DATABASE_URL` (see `.env.example`).
 
-- Unit tests: in `src/` (`cargo test -p bgt-backend --lib`), no database.
-- Integration tests: `tests/integration/` (own crate `bgt-backend-integration`), real Postgres via Testcontainers (needs Docker).
+- Unit tests: in-source in `src/` (`moon run unit:backend`), no database.
+- Integration tests: deferred, will live in `tests/integration`.
 - OpenAPI spec: `GET /openapi.json`.

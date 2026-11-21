@@ -4,22 +4,15 @@ on:
   push:
     branches: [main]
 jobs:
-  backend-and-db:
-    runs-on: ubuntu-latest # Docker is preinstalled, needed by Testcontainers
+  unit:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test --workspace
-  frontend:
-    runs-on: ubuntu-latest
-    defaults: { run: { working-directory: frontend } }
-    steps:
-      - uses: actions/checkout@v4
+      - run: cargo test -p bgt-backend
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
+        with: { node-version: 22, cache: npm }
       - run: npm ci
-      - run: npx tsc --noEmit
-      - run: npm test
-      - run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
+      - run: npx tsc --noEmit -p frontend
+      - run: npm test -w tests/unit

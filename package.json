@@ -1,0 +1,5 @@
+{
+  "name": "board-game-tracker",
+  "private": true,
+  "workspaces": ["frontend", "tests/unit"]
+}

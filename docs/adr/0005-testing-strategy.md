@@ -1,6 +1,6 @@
 # 0005. Testing strategy
 
-- Status: accepted
+- Status: accepted (layout amended by [0010](0010-test-layout.md))
 - Date: 2026-11-21
 
 ## Context and problem statement
