@@ -5,3 +5,5 @@ tasks:
   dev:
     command: npx expo start
     local: true
+  e2e:
+    command: npx playwright test
