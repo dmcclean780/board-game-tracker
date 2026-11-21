@@ -1,8 +1,7 @@
 language: rust
 tasks:
   test:
-    command: cargo test -p bgt-backend
-    options: { runFromWorkspaceRoot: true }
+    command: cargo test
   dev:
-    command: cargo run -p bgt-backend
+    command: cargo run
     local: true
