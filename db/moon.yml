@@ -1,5 +1,4 @@
 tasks:
   up:
     command: docker compose up -d db
-    options: { runFromWorkspaceRoot: true }
     local: true
