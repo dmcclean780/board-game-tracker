@@ -1,5 +1,7 @@
 language: typescript
 tasks:
+  test:
+    command: npx jest
   dev:
     command: npx expo start
     local: true

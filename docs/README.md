@@ -6,4 +6,4 @@
 
 ## Running things
 
-Local Postgres: `docker compose up -d db`, copy `.env.example` to `.env`. Install deps with `npm install` at the root. Tasks via [moon](https://moonrepo.dev): `moon run unit:test` runs all unit tests (`unit:backend`, `unit:frontend` individually). See [tests/README.md](../tests/README.md).
+Local Postgres: `docker compose up -d db`, copy `.env.example` to `.env`. Frontend: `cd frontend && npm install`. Tasks via [moon](https://moonrepo.dev): `moon run frontend:test`, `moon run backend:test`, or `moon run :test` for everything. See [ADR 0011](adr/0011-tests-beside-source.md).

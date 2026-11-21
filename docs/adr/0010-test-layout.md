@@ -1,6 +1,6 @@
 # 10. Root tests/ folder grouped by test type
 
-- Status: accepted
+- Status: superseded by [0011](0011-tests-beside-source.md)
 - Date: 2026-11-21
 - Amends: [0005](0005-testing-strategy.md)
 
