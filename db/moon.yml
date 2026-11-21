@@ -1,0 +1,8 @@
+language: rust
+tasks:
+  test:
+    command: cargo test -p bgt-db
+  up:
+    command: docker compose up -d db
+    options: { runFromWorkspaceRoot: true }
+    local: true

@@ -1,0 +1,4 @@
+rust:
+  version: stable
+node:
+  packageManager: npm

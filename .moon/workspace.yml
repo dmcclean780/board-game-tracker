@@ -1,0 +1,6 @@
+projects:
+  frontend: frontend
+  backend: backend
+  db: db
+vcs:
+  defaultBranch: main

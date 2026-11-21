@@ -1,0 +1,16 @@
+# 0006. moon, GitHub Actions and Docker for tooling
+
+- Status: accepted
+- Date: 2026-11-21
+
+## Context and problem statement
+
+We need one way to run tasks locally and in CI.
+
+## Decision
+
+moon defines `test`/`dev` tasks per project; GitHub Actions runs them on PR; docker-compose provides local Postgres.
+
+## Consequences
+
+See the related component docs. Revisit by superseding this ADR with a new one.

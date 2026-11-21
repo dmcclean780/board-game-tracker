@@ -1,0 +1,7 @@
+language: rust
+tasks:
+  test:
+    command: cargo test -p bgt-backend
+  dev:
+    command: cargo run -p bgt-backend
+    local: true

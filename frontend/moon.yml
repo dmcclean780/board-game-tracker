@@ -1,0 +1,9 @@
+language: typescript
+tasks:
+  test:
+    command: npx jest
+  e2e:
+    command: npx playwright test
+  dev:
+    command: npx expo start
+    local: true
