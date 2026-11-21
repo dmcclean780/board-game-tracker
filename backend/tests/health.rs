@@ -1,10 +1,10 @@
 use axum::{body::Body, http::{Request, StatusCode}};
-use testcontainers_modules::{postgres::Postgres, testcontainers::runners::AsyncRunner};
+use testcontainers_modules::{postgres::Postgres, testcontainers::{runners::AsyncRunner, ImageExt}};
 use tower::ServiceExt;
 
 #[tokio::test]
 async fn health_checks_real_postgres() {
-    let pg = Postgres::default().start().await.unwrap();
+    let pg = Postgres::default().with_tag("17").start().await.unwrap();
     let url = format!("postgres://postgres:postgres@{}:{}/postgres", pg.get_host().await.unwrap(), pg.get_host_port_ipv4(5432).await.unwrap());
     let db = sqlx::PgPool::connect(&url).await.unwrap();
     sqlx::migrate!("../db/migrations").run(&db).await.unwrap();
