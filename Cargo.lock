@@ -143,7 +143,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "bgt-db"
+name = "bgt-backend-integration"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "bgt-backend",
+ "sqlx",
+ "testcontainers-modules",
+ "tokio",
+ "tower",
+]
+
+[[package]]
+name = "bgt-db-integration"
 version = "0.1.0"
 dependencies = [
  "sqlx",
@@ -1995,7 +2007,6 @@ dependencies = [
  "tokio-stream",
  "tracing",
  "url",
- "uuid",
 ]
 
 [[package]]
@@ -2075,7 +2086,6 @@ dependencies = [
  "stringprep",
  "thiserror",
  "tracing",
- "uuid",
  "whoami",
 ]
 
@@ -2113,7 +2123,6 @@ dependencies = [
  "stringprep",
  "thiserror",
  "tracing",
- "uuid",
  "whoami",
 ]
 
@@ -2139,7 +2148,6 @@ dependencies = [
  "thiserror",
  "tracing",
  "url",
- "uuid",
 ]
 
 [[package]]
@@ -2567,16 +2575,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
-]
-
-[[package]]
-name = "uuid"
-version = "1.29.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3c14b15dffa2f4bd712103e857140aa04a4f2ff6e955c77d7eb8e53ee02a3b64"
-dependencies = [
- "js-sys",
- "wasm-bindgen",
 ]
 
 [[package]]

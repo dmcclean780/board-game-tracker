@@ -1,0 +1,4 @@
+language: typescript
+tasks:
+  test:
+    command: npm --prefix ../.. run test:e2e

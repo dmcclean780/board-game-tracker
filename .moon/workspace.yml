@@ -1,6 +1,10 @@
 projects:
   frontend: frontend
+  frontend-unit: frontend/tests/unit
+  frontend-e2e: frontend/tests/e2e
   backend: backend
+  backend-integration: backend/tests/integration
   db: db
+  db-integration: db/tests/integration
 vcs:
   defaultBranch: main

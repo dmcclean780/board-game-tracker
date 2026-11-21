@@ -2,6 +2,7 @@
 name = "bgt-backend"
 version = "0.1.0"
 edition = "2021"
+autotests = false # integration tests live in the separate tests/integration crate; unit tests stay in src/
 
 [dependencies]
 axum = "0.8"

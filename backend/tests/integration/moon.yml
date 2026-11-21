@@ -1,0 +1,4 @@
+language: rust
+tasks:
+  test:
+    command: cargo test -p bgt-backend-integration

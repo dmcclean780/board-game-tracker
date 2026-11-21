@@ -9,7 +9,7 @@ Each component needs automated unit and integration tests.
 
 ## Decision
 
-Backend: `cargo test` with Testcontainers Postgres. DB: migration/constraint tests on a throwaway Postgres (`db/tests`). Frontend: Jest + RNTL, Playwright on the web build. Integration tests need Docker.
+Each test type is its own project under `<component>/tests/<type>/` (own manifest and moon project). Backend: Rust unit tests stay in-source (`src/`); `tests/integration` runs against Testcontainers Postgres. DB: `tests/integration` applies migrations to a throwaway Postgres and checks constraints. Frontend: `tests/unit` (Jest + RNTL) and `tests/e2e` (Playwright on the web build). Docker is required for integration tests.
 
 ## Consequences
 
