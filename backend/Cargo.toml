@@ -13,3 +13,4 @@ utoipa = "5"
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }
 http-body-util = "0.1"
+testcontainers-modules = { version = "0.15.0", features = ["postgres"] }

@@ -1,7 +1,9 @@
 language: rust
 tasks:
   test:
-    command: cargo test
+    command: cargo test --lib
   dev:
     command: cargo run
     local: true
+  integration:
+    command: cargo test --test integration
