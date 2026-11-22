@@ -4,42 +4,20 @@ on:
   push:
     branches: [main]
 jobs:
-  backend:
+  ci:
+    name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: backend, targets: "backend:test-ci backend:integration-ci", cargo-tools: "cargo-llvm-cov,cargo-nextest" }
+          - { name: frontend, targets: "frontend:typecheck frontend:test-ci frontend:e2e-ci", cargo-tools: "" }
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with: { workspaces: backend }
-      - run: cargo test
-        working-directory: backend
-  frontend:
-    runs-on: ubuntu-latest
-    defaults: { run: { working-directory: frontend } }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
-      - run: npm ci
-      - run: npx tsc --noEmit
-      - run: npm test
-  e2e:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:17
-        env: { POSTGRES_USER: bgt, POSTGRES_PASSWORD: bgt, POSTGRES_DB: bgt }
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U bgt" --health-interval 5s --health-timeout 5s --health-retries 10
-    defaults: { run: { working-directory: frontend } }
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
-        with: { workspaces: backend }
-      - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: frontend/package-lock.json }
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - run: npx playwright test
+      - uses: actions/checkout@v7
+        with: { fetch-depth: 0 } # moon ci diffs against the base branch
+      - uses: ./.github/actions/moon
+        with:
+          name: ${{ matrix.name }}
+          targets: ${{ matrix.targets }}
+          cargo-tools: ${{ matrix.cargo-tools }}

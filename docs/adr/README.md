@@ -16,3 +16,4 @@ MADR-style, one file per decision, numbered `NNNN-slug.md`. Never edit an accept
 | [0010](0010-test-layout.md) | Root tests/ by type | superseded by 0011 |
 | [0011](0011-tests-beside-source.md) | Tests beside source | accepted |
 | [0012](0012-integration-and-e2e-tests.md) | Integration and e2e tests | accepted |
+| [0013](0013-ci-via-moon-template.md) | CI via moon template | accepted |
