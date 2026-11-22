@@ -5,14 +5,19 @@ on:
     branches: [main]
 jobs:
   ci:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         include:
           - { name: backend, targets: "backend:test-ci backend:integration-ci", cargo-tools: "cargo-llvm-cov,cargo-nextest" }
           - { name: frontend, targets: "frontend:typecheck frontend:test-ci frontend:e2e-ci", cargo-tools: "" }
-    uses: ./.github/workflows/moon-ci.yml
-    with:
-      name: ${{ matrix.name }}
-      targets: ${{ matrix.targets }}
-      cargo-tools: ${{ matrix.cargo-tools }}
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 } # moon ci diffs against the base branch
+      - uses: ./.github/actions/moon
+        with:
+          name: ${{ matrix.name }}
+          targets: ${{ matrix.targets }}
+          cargo-tools: ${{ matrix.cargo-tools }}

@@ -8,4 +8,4 @@ _Avoid_: service
 A moon task of a project, written `project:task` (for example `backend:test`).
 
 **CI template**:
-The shared reusable workflow that every CI pipeline calls, passing only variables such as the targets to run.
+The shared composite action that every CI job uses, passing only variables such as the targets to run.
