@@ -7,7 +7,7 @@ on:
         type: string
         required: true
       targets:
-        description: Space-separated moon targets for `moon ci`; empty runs every affected target.
+        description: Space-separated moon targets, each run as its own `moon ci` in its own log group.
         type: string
         default: ""
       cargo-tools:
@@ -32,8 +32,18 @@ jobs:
         if: inputs.cargo-tools != ''
         uses: taiki-e/install-action@v2
         with: { tool: "${{ inputs.cargo-tools }}" }
-      - name: Run ${{ inputs.name }} (moon ci)
-        run: moon ci ${{ inputs.targets }}
+      - name: Run suites
+        shell: bash
+        env: { TARGETS: "${{ inputs.targets }}" }
+        run: |
+          # One `moon ci` per target in its own log group; keep going so every suite reports, fail at the end.
+          rc=0
+          for t in $TARGETS; do
+            echo "::group::$t"
+            moon ci "$t" || { rc=1; echo "::error::$t failed"; }
+            echo "::endgroup::"
+          done
+          exit $rc
       - name: Publish test results
         if: ${{ !cancelled() }}
         uses: test-summary/action@v2

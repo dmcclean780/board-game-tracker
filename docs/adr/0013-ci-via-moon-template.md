@@ -13,7 +13,7 @@ CI ran raw commands in three jobs that each repeated toolchain setup, and drifte
 - CI only runs `moon ci`, through the reusable workflow `.github/workflows/moon-ci.yml`. `ci.yml` calls it with variables only (`targets`, `rust-cache-workspaces`).
 - moon (via proto, `.prototools` and `.moon/toolchain.yml`) installs Node and Rust, so the template has no language-specific steps.
 - e2e Postgres comes from the `db:up` task, a dependency of `frontend:e2e`, not a GitHub service container.
-- CI runs one matrix job per test suite (backend unit, backend integration, frontend typecheck, unit, e2e), each calling the template with its own `name` and `targets`. `moon ci` still skips suites with no affected files.
+- CI runs one matrix job per project (`backend`, `frontend`), each calling the template with its own `name` and `targets`. The template runs each target as a separate `moon ci` in its own log group, so every suite runs and reports even if an earlier one fails. `moon ci` still skips targets with no affected files.
 - Suites publish JUnit results and lcov coverage under `<project>/reports/<suite>/` through `*-ci` moon tasks (plain `test`/`integration`/`e2e` stay for local use). The template shows them in the job summary and uploads them as artifacts. e2e publishes results only; there is no e2e coverage.
 
 ## Consequences
