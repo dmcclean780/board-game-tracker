@@ -8,6 +8,7 @@ One file per feature area describing what the system **does today**: behaviour, 
 | [accounts.md](accounts.md) | The User record, `/me`, account deletion, restore, purge |
 | [app-shell.md](app-shell.md) | Screen routing, auth gate, home screen |
 | [platform.md](platform.md) | `/health`, OpenAPI, CORS, configuration |
+| [local-dev.md](local-dev.md) | `tilt up`: the local development stack |
 
 ## How specs relate to other docs
 
