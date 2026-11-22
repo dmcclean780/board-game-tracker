@@ -12,7 +12,7 @@ One command that starts everything needed to use the app on a developer machine.
   Tests: none
 - **DEV-2** The app is served on http://localhost:8081, the API on http://localhost:3000 and Mailpit on http://localhost:8025.
   Tests: none
-- **DEV-3** The backend and the frontend get the values from the root `.env`, or from `.env.example` when `.env` does not exist.
+- **DEV-3** The backend and the frontend get the values from `.env.example`, overridden by any keys set in the root `.env`.
   Tests: none
 - **DEV-4** The backend starts only after `auth` is healthy, and the frontend starts only after `frontend-install` has finished and the backend's `/health` answers.
   Tests: none

@@ -5,13 +5,16 @@ for name in ['db', 'auth-init', 'auth']:
 dc_resource('mailpit', labels=['infra'], links=[link('http://localhost:8025', 'Mailpit')])
 
 # Neither the backend nor Expo (which looks in frontend/) sees the root .env, so pass it to both; fall back to the committed dev defaults.
-env_file = '.env' if os.path.exists('.env') else '.env.example'
+# .env only overrides .env.example, so a partial .env (e.g. just the compose password) still leaves DATABASE_URL set.
 backend_env = {}
-for line in str(read_file(env_file)).splitlines():
-    line = line.strip()
-    if line and not line.startswith('#') and '=' in line:
-        key, value = line.split('=', 1)
-        backend_env[key.strip()] = value.strip()
+for env_file in ['.env.example', '.env']:
+    if not os.path.exists(env_file):
+        continue
+    for line in str(read_file(env_file)).splitlines():
+        line = line.strip()
+        if line and not line.startswith('#') and '=' in line:
+            key, value = line.split('=', 1)
+            backend_env[key.strip()] = value.strip()
 watch_file('.env')
 
 local_resource(
