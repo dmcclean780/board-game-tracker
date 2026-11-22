@@ -1,0 +1,88 @@
+import { expect, Page, test } from "@playwright/test";
+import { linkFromMail } from "./mail";
+
+const PASSWORD = "correct-horse-9";
+const uniqueEmail = () => `ada+${Date.now()}${Math.floor(Math.random() * 1e6)}@example.com`;
+
+async function signUpAndVerify(page: Page, email: string, name = "Ada") {
+  await page.goto("/sign-up");
+  await page.getByLabel("Display name").fill(name);
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByText("Check your email")).toBeVisible();
+  // The verification link signs the user in on return.
+  await page.goto(await linkFromMail(email, "Confirm Your Email"));
+  await expect(page.getByRole("heading", { name: `Hi, ${name}` })).toBeVisible();
+}
+
+async function signIn(page: Page, email: string, password = PASSWORD) {
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(password);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+}
+
+test("signed-out visitors land on the login screen", async ({ page }) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeVisible();
+});
+
+test("sign up, verify email, sign out and sign back in", async ({ page }) => {
+  const email = uniqueEmail();
+  await signUpAndVerify(page, email);
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await signIn(page, email);
+  await expect(page.getByRole("heading", { name: "Hi, Ada" })).toBeVisible();
+});
+
+test("unverified email cannot sign in", async ({ page }) => {
+  const email = uniqueEmail();
+  await page.goto("/sign-up");
+  await page.getByLabel("Display name").fill("Ada");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(PASSWORD);
+  await page.getByRole("button", { name: "Create account" }).click();
+  await expect(page.getByText("Check your email")).toBeVisible();
+  await page.goto("/login");
+  await signIn(page, email);
+  await expect(page.getByRole("alert")).toContainText("Email not confirmed");
+});
+
+test("wrong password is rejected", async ({ page }) => {
+  await page.goto("/login");
+  await signIn(page, uniqueEmail());
+  await expect(page.getByRole("alert")).toBeVisible();
+});
+
+test("reset a forgotten password", async ({ page }) => {
+  const email = uniqueEmail();
+  await signUpAndVerify(page, email);
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await page.getByRole("link", { name: "Forgot password?" }).click();
+  await expect(page.getByRole("heading", { name: "Reset your password" })).toBeVisible();
+  // The stack keeps the login screen mounted underneath, so pick the visible field.
+  await page.getByLabel("Email").locator("visible=true").fill(email);
+  await page.getByRole("button", { name: "Send reset link" }).click();
+  await expect(page.getByText(/reset link is on its way/)).toBeVisible();
+  await page.goto(await linkFromMail(email, "Reset Your Password"));
+  await page.getByLabel("New password").fill("a-brand-new-pass-1");
+  await page.getByRole("button", { name: "Save password" }).click();
+  await expect(page.getByRole("heading", { name: "Hi, Ada" })).toBeVisible();
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await signIn(page, email, "a-brand-new-pass-1");
+  await expect(page.getByRole("heading", { name: "Hi, Ada" })).toBeVisible();
+});
+
+test("delete the account, then restore it on next sign-in", async ({ page }) => {
+  const email = uniqueEmail();
+  await signUpAndVerify(page, email);
+  await page.getByRole("button", { name: "Delete account" }).click();
+  await page.getByRole("button", { name: "Confirm delete" }).click();
+  await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
+  await signIn(page, email);
+  await expect(page.getByRole("heading", { name: "Account scheduled for deletion" })).toBeVisible();
+  await page.getByRole("button", { name: "Restore account" }).click();
+  await expect(page.getByRole("heading", { name: "Hi, Ada" })).toBeVisible();
+});

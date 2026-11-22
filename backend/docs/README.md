@@ -5,3 +5,4 @@ Rust, Axum, sqlx (see ADR 0003, 0004, 0007). `src/lib.rs` builds the router; `sr
 - Unit tests: in-source in `src/` (`moon run backend:test`), no database.
 - Integration tests: `tests/integration`, Testcontainers Postgres, needs Docker (`moon run backend:integration`).
 - OpenAPI spec: `GET /openapi.json`.
+- Auth (ADR 0014): also requires `AUTH_URL`, `AUTH_JWT_SECRET`, `AUTH_SERVICE_KEY`. `GET /me` (creates the User), `DELETE /me` and `POST /me/restore` need a bearer token. A daily task in `main.rs` purges Users 30 days after they requested deletion.
