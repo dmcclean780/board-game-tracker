@@ -2,8 +2,11 @@ language: typescript
 tasks:
   typecheck:
     command: npx tsc --noEmit
+  # Plain tasks are for local use; the *-ci variants publish JUnit (+ lcov for unit) under reports/.
   test:
     command: npx jest
+    options:
+      runInCI: false
   dev:
     command: npx expo start
     local: true
@@ -12,7 +15,7 @@ tasks:
   e2e:
     command: npx playwright test
     deps: [playwright-install, db:up]
-    inputs:
+    inputs: &e2e-inputs
       - src/**/*
       - tests/**/*
       - "*.json"
@@ -21,3 +24,18 @@ tasks:
       - /backend/src/**/*
       - /backend/Cargo.*
       - /db/migrations/**/*
+    options:
+      runInCI: false
+  test-ci:
+    command: npx jest --coverage --coverageDirectory=reports/unit --coverageReporters=lcov --reporters=default --reporters=jest-junit
+    env:
+      JEST_JUNIT_OUTPUT_DIR: reports/unit
+      JEST_JUNIT_OUTPUT_NAME: junit.xml
+    outputs: [reports/unit]
+  e2e-ci:
+    command: npx playwright test --reporter=list,junit
+    env:
+      PLAYWRIGHT_JUNIT_OUTPUT_FILE: reports/e2e/junit.xml
+    deps: [playwright-install, db:up]
+    inputs: *e2e-inputs
+    outputs: [reports/e2e]

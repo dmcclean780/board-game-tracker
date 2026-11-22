@@ -2,8 +2,16 @@ name: moon-ci
 on:
   workflow_call:
     inputs:
+      name:
+        description: Suite name; labels the steps and the uploaded reports artifact.
+        type: string
+        required: true
       targets:
         description: Space-separated moon targets for `moon ci`; empty runs every affected target.
+        type: string
+        default: ""
+      cargo-tools:
+        description: Comma-separated cargo tools to install first (for example cargo-llvm-cov,cargo-nextest).
         type: string
         default: ""
       rust-cache-workspaces:
@@ -11,6 +19,7 @@ on:
         default: backend
 jobs:
   moon:
+    name: ${{ inputs.name }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,4 +28,36 @@ jobs:
         with: { auto-install: true }
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: "${{ inputs.rust-cache-workspaces }}" }
-      - run: moon ci ${{ inputs.targets }}
+      - name: Install cargo tools
+        if: inputs.cargo-tools != ''
+        uses: taiki-e/install-action@v2
+        with: { tool: "${{ inputs.cargo-tools }}" }
+      - name: Run ${{ inputs.name }} (moon ci)
+        run: moon ci ${{ inputs.targets }}
+      - name: Publish test results
+        if: ${{ !cancelled() }}
+        uses: test-summary/action@v2
+        with:
+          paths: "*/reports/**/junit.xml"
+          show: all
+      - name: Publish coverage summary
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          for f in */reports/*/lcov.info; do
+            [ -e "$f" ] || continue
+            awk -v suite="$f" -F: '
+              /^LF:/{lf+=$2} /^LH:/{lh+=$2} /^FNF:/{ff+=$2} /^FNH:/{fh+=$2} /^BRF:/{bf+=$2} /^BRH:/{bh+=$2}
+              function pct(h,t){return t ? sprintf("%.1f%% (%d/%d)", 100*h/t, h, t) : "n/a"}
+              END{
+                print "### Coverage: " suite "\n\n| Lines | Functions | Branches |\n|---|---|---|"
+                print "| " pct(lh,lf) " | " pct(fh,ff) " | " pct(bh,bf) " |\n"
+              }' "$f" >> "$GITHUB_STEP_SUMMARY"
+          done
+      - name: Upload reports
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports-${{ inputs.name }}
+          path: "*/reports"
+          if-no-files-found: ignore

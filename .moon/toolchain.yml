@@ -1,5 +1,6 @@
 rust:
   version: stable
+  components: [llvm-tools-preview]
 node:
   version: "22"
   packageManager: npm

@@ -1,0 +1,9 @@
+# Each suite gets its own profile so JUnit files don't overwrite each other.
+[store]
+dir = "reports/nextest"
+
+[profile.unit.junit]
+path = "junit.xml"
+
+[profile.integration.junit]
+path = "junit.xml"
