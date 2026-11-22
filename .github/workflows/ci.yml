@@ -14,7 +14,7 @@ jobs:
           - { name: backend, targets: "backend:test-ci backend:integration-ci", cargo-tools: "cargo-llvm-cov,cargo-nextest" }
           - { name: frontend, targets: "frontend:typecheck frontend:test-ci frontend:e2e-ci", cargo-tools: "" }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 } # moon ci diffs against the base branch
       - uses: ./.github/actions/moon
         with:
