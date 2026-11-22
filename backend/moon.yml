@@ -13,12 +13,12 @@ tasks:
     options:
       runInCI: false
   test-ci:
-    command: cargo llvm-cov nextest --lib --lcov --output-path reports/unit/lcov.info
+    script: mkdir -p reports/unit && cargo llvm-cov nextest --lib --lcov --output-path reports/unit/lcov.info
     env:
       NEXTEST_PROFILE: unit
     outputs: [reports/unit, reports/nextest/unit]
   integration-ci:
-    command: cargo llvm-cov nextest --test integration --lcov --output-path reports/integration/lcov.info
+    script: mkdir -p reports/integration && cargo llvm-cov nextest --test integration --lcov --output-path reports/integration/lcov.info
     env:
       NEXTEST_PROFILE: integration
     outputs: [reports/integration, reports/nextest/integration]
