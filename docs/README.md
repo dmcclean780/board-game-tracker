@@ -2,6 +2,7 @@
 
 - [Architecture decisions](adr/README.md)
 - [Business rules](business-rules/README.md)
+- Runbooks: [auth provider and Google sign-in](runbooks/auth-setup.md)
 - Component docs: [frontend](../frontend/docs/README.md), [backend](../backend/docs/README.md), [db](../db/docs/README.md)
 
 ## Running things
