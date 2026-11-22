@@ -1,6 +1,6 @@
 # 0006. moon, GitHub Actions and Docker for tooling
 
-- Status: accepted (amended by [0013](0013-ci-via-moon-template.md))
+- Status: accepted (amended by [0013](0013-ci-via-moon-template.md) and [0015](0015-tilt-for-local-dev.md))
 - Date: 2026-11-21
 
 ## Context and problem statement

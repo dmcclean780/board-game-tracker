@@ -18,3 +18,4 @@ MADR-style, one file per decision, numbered `NNNN-slug.md`. Never edit an accept
 | [0012](0012-integration-and-e2e-tests.md) | Integration and e2e tests | accepted |
 | [0013](0013-ci-via-moon-template.md) | CI via moon template | accepted |
 | [0014](0014-supabase-auth.md) | Supabase Auth for sign-in | accepted |
+| [0015](0015-tilt-for-local-dev.md) | Tilt for local dev | accepted |

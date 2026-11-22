@@ -1,0 +1,22 @@
+name = "Tilt"
+type = "cli"
+
+[platform.linux]
+download-file = "tilt.{version}.linux.{arch}.tar.gz"
+
+[platform.macos]
+download-file = "tilt.{version}.mac.{arch}.tar.gz"
+
+[install]
+download-url = "https://github.com/tilt-dev/tilt/releases/download/v{version}/{download_file}"
+
+[install.exes.tilt]
+exe-path = "tilt"
+primary = true
+
+[install.arch]
+x86_64 = "x86_64"
+aarch64 = "arm64"
+
+[resolve]
+git-url = "https://github.com/tilt-dev/tilt"

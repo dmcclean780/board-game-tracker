@@ -67,7 +67,7 @@ The local GoTrue container is the same open-source server that Supabase runs, so
    ```text
    cd db && docker compose up -d auth
    ```
-4. Run the stack as usual: `moon run db:up`, backend with the variables from `.env.example`, then `cd frontend && npx expo start --web --port 8081`.
+4. Run the stack with `tilt up`. If Tilt is already running, `docker compose up -d auth` in `db/` is enough.
 5. Open http://localhost:8081, click **Sign in with Google**, choose your test account.
 
 Automated tests never use Google; CI has no credentials and the e2e suite covers email and password only.

@@ -1,1 +1,5 @@
 moon = "1"
+tilt = "0.37.9"
+
+[plugins]
+tilt = "file://.proto/plugins/tilt.toml"
