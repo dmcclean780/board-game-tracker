@@ -1,6 +1,6 @@
 # 0006. moon, GitHub Actions and Docker for tooling
 
-- Status: accepted
+- Status: accepted (amended by [0013](0013-ci-via-moon-template.md))
 - Date: 2026-11-21
 
 ## Context and problem statement

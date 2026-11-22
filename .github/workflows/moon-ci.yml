@@ -1,0 +1,22 @@
+name: moon-ci
+on:
+  workflow_call:
+    inputs:
+      targets:
+        description: Space-separated moon targets for `moon ci`; empty runs every affected target.
+        type: string
+        default: ""
+      rust-cache-workspaces:
+        type: string
+        default: backend
+jobs:
+  moon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 } # moon ci diffs against the base branch
+      - uses: moonrepo/setup-toolchain@v0
+        with: { auto-install: true }
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: "${{ inputs.rust-cache-workspaces }}" }
+      - run: moon ci ${{ inputs.targets }}

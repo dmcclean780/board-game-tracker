@@ -1,4 +1,6 @@
 tasks:
   up:
-    command: docker compose up -d db
-    local: true
+    command: docker compose up -d --wait db
+    options:
+      cache: false
+      runInCI: true

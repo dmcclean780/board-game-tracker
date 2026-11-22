@@ -1,4 +1,5 @@
 rust:
   version: stable
 node:
+  version: "22"
   packageManager: npm

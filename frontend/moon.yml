@@ -1,9 +1,20 @@
 language: typescript
 tasks:
+  typecheck:
+    command: npx tsc --noEmit
   test:
     command: npx jest
   dev:
     command: npx expo start
     local: true
+  playwright-install:
+    command: npx playwright install --with-deps chromium
   e2e:
     command: npx playwright test
+    deps: [playwright-install, db:up]
+    inputs:
+      - "@globs(sources)"
+      - "@globs(tests)"
+      - /backend/src/**/*
+      - /backend/Cargo.*
+      - /db/migrations/**/*
