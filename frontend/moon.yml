@@ -13,8 +13,11 @@ tasks:
     command: npx playwright test
     deps: [playwright-install, db:up]
     inputs:
-      - "@globs(sources)"
-      - "@globs(tests)"
+      - src/**/*
+      - tests/**/*
+      - "*.json"
+      - "*.ts"
+      - "*.js"
       - /backend/src/**/*
       - /backend/Cargo.*
       - /db/migrations/**/*
