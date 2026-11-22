@@ -1,0 +1,92 @@
+use crate::auth::{Auth, AppState, AuthUser};
+use axum::{extract::State, http::StatusCode, Json};
+use chrono::{DateTime, Duration, Utc};
+use serde::Serialize;
+use sqlx::{FromRow, PgPool};
+use utoipa::ToSchema;
+use uuid::Uuid;
+
+/// How long a User who asked to delete their account can still restore it.
+pub const GRACE_DAYS: i64 = 30;
+
+#[derive(Serialize, ToSchema)]
+pub struct Me {
+    pub id: Uuid,
+    pub email: String,
+    pub display_name: String,
+    /// When the account will be permanently deleted, if deletion was requested.
+    pub deletion_scheduled_for: Option<DateTime<Utc>>,
+}
+
+#[derive(FromRow)]
+struct Row {
+    id: Uuid,
+    email: String,
+    display_name: String,
+    deletion_requested_at: Option<DateTime<Utc>>,
+}
+
+/// The signed-in User; created from the token on first call.
+#[utoipa::path(get, path = "/me", responses((status = 200, body = Me), (status = 401)))]
+pub async fn me(State(s): State<AppState>, u: AuthUser) -> Result<Json<Me>, StatusCode> {
+    let r: Row = sqlx::query_as(
+        "INSERT INTO users (id, email, display_name) VALUES ($1, $2, $3)
+         ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email
+         RETURNING id, email, display_name, deletion_requested_at",
+    )
+    .bind(u.id)
+    .bind(&u.email)
+    .bind(&u.display_name)
+    .fetch_one(&s.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(Me {
+        id: r.id,
+        email: r.email,
+        display_name: r.display_name,
+        deletion_scheduled_for: r.deletion_requested_at.map(|t| t + Duration::days(GRACE_DAYS)),
+    }))
+}
+
+async fn set_deletion(db: &PgPool, id: Uuid, sql: &str) -> StatusCode {
+    match sqlx::query(sql).bind(id).execute(db).await {
+        Ok(r) if r.rows_affected() == 1 => StatusCode::NO_CONTENT,
+        Ok(_) => StatusCode::NOT_FOUND,
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    }
+}
+
+/// Schedule the account for deletion after the grace period.
+#[utoipa::path(delete, path = "/me", responses((status = 204), (status = 401), (status = 404)))]
+pub async fn delete_me(State(s): State<AppState>, u: AuthUser) -> StatusCode {
+    set_deletion(&s.db, u.id, "UPDATE users SET deletion_requested_at = COALESCE(deletion_requested_at, now()) WHERE id = $1").await
+}
+
+/// Cancel a scheduled deletion.
+#[utoipa::path(post, path = "/me/restore", responses((status = 204), (status = 401), (status = 404)))]
+pub async fn restore_me(State(s): State<AppState>, u: AuthUser) -> StatusCode {
+    set_deletion(&s.db, u.id, "UPDATE users SET deletion_requested_at = NULL WHERE id = $1").await
+}
+
+/// Permanently delete Users whose grace period is over; returns how many were removed.
+/// Safe to run repeatedly or from several instances: provider 404s count as done and the row delete is idempotent.
+pub async fn purge_expired(db: &PgPool, auth: &Auth) -> Result<usize, sqlx::Error> {
+    let ids: Vec<Uuid> = sqlx::query_scalar("SELECT id FROM users WHERE deletion_requested_at < now() - make_interval(days => $1::int)")
+        .bind(GRACE_DAYS as i32)
+        .fetch_all(db)
+        .await?;
+    let mut purged = 0;
+    for id in ids {
+        let res = auth.http.delete(format!("{}/admin/users/{id}", auth.url)).bearer_auth(&auth.service_key).send().await;
+        // Keep the row (and retry tomorrow) unless the provider confirmed the account is gone.
+        match res {
+            Ok(r) if r.status().is_success() || r.status() == reqwest::StatusCode::NOT_FOUND => {
+                sqlx::query("DELETE FROM users WHERE id = $1").bind(id).execute(db).await?;
+                purged += 1;
+            }
+            Ok(r) => eprintln!("purge {id}: provider returned {}", r.status()),
+            Err(e) => eprintln!("purge {id}: {e}"),
+        }
+    }
+    Ok(purged)
+}

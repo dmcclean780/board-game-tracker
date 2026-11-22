@@ -1,6 +1,6 @@
 # 0008. Authentication
 
-- Status: proposed
+- Status: superseded by 0014
 - Date: 2026-11-21
 
 ## Context and problem statement

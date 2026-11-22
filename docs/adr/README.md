@@ -11,9 +11,10 @@ MADR-style, one file per decision, numbered `NNNN-slug.md`. Never edit an accept
 | [0005](0005-testing-strategy.md) | Testing strategy | accepted |
 | [0006](0006-moon-github-actions-docker.md) | moon, GitHub Actions, Docker | accepted |
 | [0007](0007-rest-openapi.md) | REST + OpenAPI | accepted |
-| [0008](0008-authentication.md) | Authentication | proposed |
+| [0008](0008-authentication.md) | Authentication | superseded by 0014 |
 | [0009](0009-deployment.md) | Deployment | proposed |
 | [0010](0010-test-layout.md) | Root tests/ by type | superseded by 0011 |
 | [0011](0011-tests-beside-source.md) | Tests beside source | accepted |
 | [0012](0012-integration-and-e2e-tests.md) | Integration and e2e tests | accepted |
 | [0013](0013-ci-via-moon-template.md) | CI via moon template | accepted |
+| [0014](0014-supabase-auth.md) | Supabase Auth for sign-in | accepted |

@@ -1,7 +1,12 @@
-use axum::{extract::State, http::StatusCode, routing::get, Json, Router};
+use axum::{extract::State, http::StatusCode, routing::{get, post}, Json, Router};
 use serde::Serialize;
-use sqlx::PgPool;
+use tower_http::cors::CorsLayer;
 use utoipa::{OpenApi, ToSchema};
+
+pub mod auth;
+pub mod users;
+
+pub use auth::{AppState, Auth};
 
 #[derive(Serialize, ToSchema)]
 pub struct Health {
@@ -9,13 +14,13 @@ pub struct Health {
 }
 
 #[derive(OpenApi)]
-#[openapi(paths(health), components(schemas(Health)))]
+#[openapi(paths(health, users::me, users::delete_me, users::restore_me), components(schemas(Health, users::Me)))]
 pub struct ApiDoc;
 
 /// Liveness plus database connectivity check.
 #[utoipa::path(get, path = "/health", responses((status = 200, body = Health), (status = 503)))]
-async fn health(State(db): State<PgPool>) -> Result<Json<Health>, StatusCode> {
-    sqlx::query("SELECT 1").execute(&db).await.map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+async fn health(State(s): State<AppState>) -> Result<Json<Health>, StatusCode> {
+    sqlx::query("SELECT 1").execute(&s.db).await.map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
     Ok(Json(Health { status: "ok" }))
 }
 
@@ -23,23 +28,33 @@ async fn openapi() -> Json<utoipa::openapi::OpenApi> {
     Json(ApiDoc::openapi())
 }
 
-pub fn app(db: PgPool) -> Router {
-    Router::new().route("/health", get(health)).route("/openapi.json", get(openapi)).with_state(db)
+pub fn app(state: AppState) -> Router {
+    Router::new()
+        .route("/health", get(health))
+        .route("/openapi.json", get(openapi))
+        .route("/me", get(users::me).delete(users::delete_me))
+        .route("/me/restore", post(users::restore_me))
+        // shortcut: any origin is fine for bearer-token auth; restrict to the app's origin once deployment (ADR 0009) is decided.
+        .layer(CorsLayer::permissive())
+        .with_state(state)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use axum::{body::Body, http::Request};
+    use sqlx::PgPool;
     use tower::ServiceExt;
 
     #[tokio::test]
     async fn openapi_lists_health() {
         // Lazy pool never connects, so no database is needed for unit tests.
         let db = PgPool::connect_lazy("postgres://unused@localhost/unused").unwrap();
-        let res = app(db).oneshot(Request::get("/openapi.json").body(Body::empty()).unwrap()).await.unwrap();
+        let auth = Auth { url: String::new(), jwt_secret: "s".into(), service_key: String::new(), http: reqwest::Client::new() };
+        let res = app(AppState { db, auth }).oneshot(Request::get("/openapi.json").body(Body::empty()).unwrap()).await.unwrap();
         assert_eq!(res.status(), StatusCode::OK);
         let body = http_body_util::BodyExt::collect(res.into_body()).await.unwrap().to_bytes();
-        assert!(String::from_utf8_lossy(&body).contains("/health"));
+        let body = String::from_utf8_lossy(&body);
+        assert!(body.contains("/health") && body.contains("/me"));
     }
 }

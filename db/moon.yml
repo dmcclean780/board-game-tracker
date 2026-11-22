@@ -1,6 +1,6 @@
 tasks:
   up:
-    command: docker compose up -d --wait db
+    command: docker compose up -d --wait db auth mailpit
     options:
       cache: false
       runInCI: true
