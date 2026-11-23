@@ -25,6 +25,33 @@ pub enum Victory {
     Dominance,
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum Map {
+    Autumn,
+    Winter,
+    Lake,
+    Mountain,
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum Deck {
+    Standard,
+}
+
+#[derive(Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
+#[serde(rename_all = "snake_case")]
+pub enum Landmark {
+    BlackMarket,
+    ElderTreetop,
+    LegendaryForge,
+    LostCity,
+}
+
+/// Landmarks in play at once.
+const MAX_LANDMARKS: usize = 2;
+
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RootPlayer {
@@ -38,6 +65,10 @@ pub struct RootPlayer {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RootResult {
+    pub map: Map,
+    pub deck: Deck,
+    #[serde(default)]
+    pub landmarks: Vec<Landmark>,
     pub victory: Victory,
     /// Keyed by player name; must match the session's players.
     pub players: BTreeMap<String, RootPlayer>,
@@ -51,6 +82,9 @@ impl Game for Root {
     type Result = RootResult;
 
     fn check(players: &[String], r: &RootResult) -> Result<(), String> {
+        if r.landmarks.len() > MAX_LANDMARKS || r.landmarks.iter().collect::<HashSet<_>>().len() != r.landmarks.len() {
+            return Err(format!("choose each landmark at most once, and no more than {MAX_LANDMARKS}"));
+        }
         let names: HashSet<&String> = players.iter().collect();
         if r.players.len() != names.len() || r.players.keys().any(|k| !names.contains(k)) {
             return Err("result must have exactly one entry for each player".into());
@@ -97,7 +131,11 @@ mod tests {
     use bgt_games::check_session;
     use serde_json::{json, Value};
 
-    fn check(players: &[&str], result: Value) -> Result<(), String> {
+    fn check(players: &[&str], mut result: Value) -> Result<(), String> {
+        // Most tests are about players, so fill in the map and deck unless a test sets them.
+        let o = result.as_object_mut().unwrap();
+        o.entry("map").or_insert(json!("autumn"));
+        o.entry("deck").or_insert(json!("standard"));
         let players: Vec<String> = players.iter().map(|s| s.to_string()).collect();
         check_session::<Root>(&players, &result)
     }
@@ -166,6 +204,22 @@ mod tests {
         let vag = json!({ "faction": "vagabond", "score": 3, "winner": true, "partner": "a" });
         let r = json!({ "victory": "points", "players": { "a": p("lizard_cult", 30, true), "b": vag } });
         assert!(check(&["a", "b"], r).unwrap_err().contains("dominance"));
+    }
+
+    #[test]
+    fn map_deck_and_landmarks() {
+        let base = |extra: Value| {
+            let mut r = json!({ "victory": "dominance", "players": { "a": p("lizard_cult", 5, true) } });
+            r.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
+            r
+        };
+        assert!(check(&["a"], base(json!({ "map": "mountain", "landmarks": ["black_market", "lost_city"] }))).is_ok());
+        assert!(check(&["a"], base(json!({ "map": "marsh" }))).is_err()); // unknown map
+        assert!(check(&["a"], base(json!({ "deck": "exiles" }))).is_err()); // unknown deck
+        assert!(check(&["a"], base(json!({ "landmarks": ["black_market", "lost_city", "elder_treetop"] }))).is_err()); // too many
+        assert!(check(&["a"], base(json!({ "landmarks": ["lost_city", "lost_city"] }))).is_err()); // repeated
+        assert!(check(&["a"], base(json!({ "landmarks": ["the_tower"] }))).is_err()); // unknown landmark
+        assert!(check_session::<Root>(&["a".to_string()], &base(json!({}))).is_err()); // map and deck are required
     }
 
     #[test]

@@ -15,11 +15,16 @@ const FACTIONS: [string, string][] = [
   ["keepers_in_iron", "Keepers in Iron"],
   ["lord_of_the_hundreds", "Lord of the Hundreds"],
 ];
+const MAPS: [string, string][] = [["autumn", "Autumn"], ["winter", "Winter"], ["lake", "Lake"], ["mountain", "Mountain"]];
+const DECKS: [string, string][] = [["standard", "Standard"]];
+const LANDMARKS: [string, string][] = [["black_market", "Black Market"], ["elder_treetop", "Elder Treetop"], ["legendary_forge", "Legendary Forge"], ["lost_city", "Lost City"]];
+const MAX_LANDMARKS = 2;
+const labelOf = (list: [string, string][], id: string) => list.find(([k]) => k === id)?.[1] ?? id;
 const factionName = (id: string) => FACTIONS.find(([k]) => k === id)?.[1] ?? id;
 
 type Row = { name: string; faction: string; score: string; winner: boolean; partner: number | null };
 
-type RootResult = { victory: string; players: Record<string, { faction: string; score: number; winner: boolean; partner: string | null }> };
+type RootResult = { map: string; deck: string; landmarks: string[]; victory: string; players: Record<string, { faction: string; score: number; winner: boolean; partner: string | null }> };
 
 const VAGABOND = "vagabond";
 const nameOf = (r: Row, i: number) => r.name.trim() || `Player ${i + 1}`;
@@ -54,6 +59,9 @@ function RootForm({ onChange }: { onChange: (v: Value) => void }) {
     return [first, { ...first, faction: freeFaction([first]) }];
   });
   const [dominance, setDominance] = useState(false);
+  const [map, setMap] = useState(MAPS[0][0]);
+  const [deck, setDeck] = useState(DECKS[0][0]);
+  const [landmarks, setLandmarks] = useState<string[]>([]);
 
   // A coalition Vagabond wins or loses with their partner.
   const won = (r: Row) => (r.partner !== null ? rows[r.partner].winner : r.winner);
@@ -65,8 +73,8 @@ function RootForm({ onChange }: { onChange: (v: Value) => void }) {
     for (const r of rows) {
       players[r.name.trim()] = { faction: r.faction, score: Number(r.score) || 0, winner: won(r), partner: r.partner !== null ? rows[r.partner].name.trim() : null };
     }
-    onChange({ players: rows.map((r) => r.name.trim()), result: { victory: dominance ? "dominance" : "points", players } });
-  }, [rows, dominance]);
+    onChange({ players: rows.map((r) => r.name.trim()), result: { map, deck, landmarks, victory: dominance ? "dominance" : "points", players } });
+  }, [rows, dominance, map, deck, landmarks]);
 
   // Only one player wins in their own right: ticking Won clears everyone else.
   const set = (i: number, patch: Partial<Row>) =>
@@ -80,6 +88,18 @@ function RootForm({ onChange }: { onChange: (v: Value) => void }) {
 
   return (
     <View style={{ gap: 12 }}>
+      <Select label="Map" value={map} options={MAPS.map(([value, label]) => ({ value, label }))} onChange={setMap} />
+      <Select label="Deck" value={deck} options={DECKS.map(([value, label]) => ({ value, label }))} onChange={setDeck} />
+      <Text style={{ fontWeight: "500" }}>Landmarks (up to {MAX_LANDMARKS})</Text>
+      {LANDMARKS.map(([id, label]) => (
+        <Checkbox
+          key={id}
+          label={label}
+          checked={landmarks.includes(id)}
+          disabled={!landmarks.includes(id) && landmarks.length >= MAX_LANDMARKS}
+          onChange={(on) => setLandmarks((l) => (on ? [...l, id] : l.filter((x) => x !== id)))}
+        />
+      ))}
       <Checkbox label="Won by dominance" checked={dominance} onChange={toggleDominance} />
       {rows.map((r, i) => (
         <View key={i} style={{ gap: 8, borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12 }}>
@@ -121,6 +141,8 @@ function RootDetail({ session }: { session: Session }) {
   const r = session.result as RootResult;
   return (
     <View style={{ gap: 4 }}>
+      <Text>{labelOf(MAPS, r.map)} map · {labelOf(DECKS, r.deck)} deck</Text>
+      {r.landmarks.length > 0 && <Text>Landmarks: {r.landmarks.map((l) => labelOf(LANDMARKS, l)).join(", ")}</Text>}
       <Text>{r.victory === "points" ? "30 point victory" : "Dominance victory"}</Text>
       {Object.entries(r.players).map(([name, p]) => (
         <Text key={name}>

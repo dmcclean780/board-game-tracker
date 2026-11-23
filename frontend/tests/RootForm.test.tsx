@@ -112,3 +112,20 @@ test("leaving dominance or Vagabond drops the coalition", async () => {
   await fireEvent.press(screen.getByLabelText("Won by dominance")); // off: points need 30
   expect(screen.queryByLabelText("Player 2 coalition with")).toBeNull();
 });
+
+test("reports the map, deck and landmarks, and allows at most two landmarks", async () => {
+  const onChange = jest.fn();
+  await render(<Form onChange={onChange} />);
+  await names();
+  await fireEvent.press(screen.getByLabelText("Player 1 won"));
+  await fireEvent.press(screen.getByLabelText("Won by dominance"));
+  expect(last(onChange).result).toMatchObject({ map: "autumn", deck: "standard", landmarks: [] });
+  await pick("Map", "lake");
+  await fireEvent.press(screen.getByLabelText("Black Market"));
+  await fireEvent.press(screen.getByLabelText("Lost City"));
+  await fireEvent.press(screen.getByLabelText("Elder Treetop")); // third: disabled
+  expect(last(onChange).result).toMatchObject({ map: "lake", landmarks: ["black_market", "lost_city"] });
+  await fireEvent.press(screen.getByLabelText("Black Market")); // untick frees a slot
+  await fireEvent.press(screen.getByLabelText("Elder Treetop"));
+  expect(last(onChange).result.landmarks).toEqual(["lost_city", "elder_treetop"]);
+});

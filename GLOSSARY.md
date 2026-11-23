@@ -27,6 +27,15 @@ A name on a Session, typed in by the User who records it. Not linked to a User y
 **Result**:
 What a Session records about how it ended. Its format belongs to the Game: Root records each Player's faction and score and who won, while a cooperative Game would record one shared outcome.
 
+**Map**:
+The Root board a Session was played on: Autumn, Winter, Lake or Mountain.
+
+**Deck**:
+The Root card deck in use. Only Standard so far.
+
+**Landmark**:
+An optional Root board piece added to the map; a Session has at most two.
+
 **Points victory**:
 A Root win by the first Player to reach 30 points.
 

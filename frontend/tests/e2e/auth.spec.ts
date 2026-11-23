@@ -92,12 +92,16 @@ test("record a Root session, view it and delete it", async ({ page }) => {
   await expect(page.getByText("No sessions yet.")).toBeVisible();
   await page.getByRole("button", { name: "Record session" }).click();
   await expect(page.getByLabel("Game")).toHaveValue("root");
+  await page.getByLabel("Map").selectOption("winter");
+  await page.getByLabel("Black Market").click();
   await page.getByLabel("Player 1 name").fill("Ada");
   await page.getByLabel("Player 1 score").fill("30");
   await page.getByLabel("Player 1 won").click();
   await page.getByLabel("Player 2 name").fill("Bo");
   await page.getByRole("button", { name: "Save session" }).click();
   await page.getByText(/· Root · Won by Ada/).click();
+  await expect(page.getByText("Winter map · Standard deck")).toBeVisible();
+  await expect(page.getByText("Landmarks: Black Market")).toBeVisible();
   await expect(page.getByText("30 point victory")).toBeVisible();
   await page.getByRole("button", { name: "Delete session" }).click();
   await page.getByRole("button", { name: "Confirm delete" }).click();

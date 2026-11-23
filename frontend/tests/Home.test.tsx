@@ -9,7 +9,7 @@ jest.mock("expo-router", () => ({
 }));
 
 const root = { id: "s1", game: "root", played_on: "2026-11-20", notes: null, duration_minutes: null, players: ["Ada", "Bo"],
-  result: { victory: "points", players: { Ada: { faction: "lizard_cult", score: 30, winner: true, partner: null }, Bo: { faction: "vagabond", score: 3, winner: false, partner: null } } } };
+  result: { map: "autumn", deck: "standard", landmarks: [], victory: "points", players: { Ada: { faction: "lizard_cult", score: 30, winner: true, partner: null }, Bo: { faction: "vagabond", score: 3, winner: false, partner: null } } } };
 
 function sessions(list: unknown[]) {
   (api as jest.Mock).mockResolvedValue({ ok: true, json: async () => list });

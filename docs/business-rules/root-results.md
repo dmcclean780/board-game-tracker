@@ -41,3 +41,11 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 - Rationale: Keeps the Result consistent with the Session it belongs to.
 - Enforced in: `backend/games/root/src/lib.rs`
 - Tests: `result_must_match_players`
+
+## BR-ROOT-006 — Map, deck and landmarks
+
+- Status: active
+- Rule: Every Root Result names one Map (Autumn, Winter, Lake or Mountain) and one Deck (Standard), and lists at most two different Landmarks (Black Market, Elder Treetop, Legendary Forge, Lost City).
+- Rationale: These are the setup choices that change how a game plays; at most two Landmarks are in play at once.
+- Enforced in: `backend/games/root/src/lib.rs`
+- Tests: `map_deck_and_landmarks`

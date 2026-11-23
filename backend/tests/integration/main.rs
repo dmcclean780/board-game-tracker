@@ -160,7 +160,7 @@ async fn purge_removes_only_users_past_grace_period() {
 fn root_session() -> serde_json::Value {
     serde_json::json!({
         "game": "root", "played_on": "2026-11-20", "players": ["Ada", "Bo"],
-        "result": { "victory": "points", "players": {
+        "result": { "map": "autumn", "deck": "standard", "landmarks": [], "victory": "points", "players": {
             "Ada": { "faction": "marquise_de_cat", "score": 30, "winner": true },
             "Bo": { "faction": "vagabond", "score": 12, "winner": false } } },
     })
