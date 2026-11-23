@@ -46,6 +46,14 @@ async fn call(pool: &PgPool, method: &str, path: &str, token: Option<&str>) -> (
     (status, String::from_utf8_lossy(&res.into_body().collect().await.unwrap().to_bytes()).into_owned())
 }
 
+/// Like `call`, but sends a JSON body.
+async fn send(pool: &PgPool, method: &str, path: &str, token: &str, body: serde_json::Value) -> (StatusCode, String) {
+    let req = Request::builder().method(method).uri(path).header("authorization", format!("Bearer {token}")).header("content-type", "application/json");
+    let res = bgt_backend::app(state(pool.clone(), "http://unused")).oneshot(req.body(Body::from(body.to_string())).unwrap()).await.unwrap();
+    let status = res.status();
+    (status, String::from_utf8_lossy(&res.into_body().collect().await.unwrap().to_bytes()).into_owned())
+}
+
 async fn get_health(pool: PgPool) -> (StatusCode, String) {
     let res = bgt_backend::app(state(pool, "http://unused")).oneshot(Request::get("/health").body(Body::empty()).unwrap()).await.unwrap();
     let status = res.status();
@@ -67,13 +75,6 @@ async fn health_503_when_db_down() {
     node.stop().await.unwrap();
     let (status, _) = get_health(pool).await;
     assert_eq!(status, StatusCode::SERVICE_UNAVAILABLE);
-}
-
-#[tokio::test]
-async fn players_rejects_blank_name() {
-    let (pool, _node) = db().await;
-    assert!(sqlx::query("INSERT INTO players (name) VALUES ('  ')").execute(&pool).await.is_err());
-    assert!(sqlx::query("INSERT INTO players (name) VALUES ('Ada')").execute(&pool).await.is_ok());
 }
 
 #[tokio::test]
@@ -154,4 +155,106 @@ async fn purge_removes_only_users_past_grace_period() {
     assert_eq!(purge_expired(&pool, &down).await.unwrap(), 0);
     let left: i64 = sqlx::query_scalar("SELECT count(*) FROM users").fetch_one(&pool).await.unwrap();
     assert_eq!(left, 2);
+}
+
+fn root_session() -> serde_json::Value {
+    serde_json::json!({
+        "game": "root", "played_on": "2026-11-20", "players": ["Ada", "Bo"],
+        "result": { "victory": "points", "players": {
+            "Ada": { "faction": "marquise_de_cat", "score": 30, "winner": true },
+            "Bo": { "faction": "vagabond", "score": 12, "winner": false } } },
+    })
+}
+
+#[tokio::test]
+async fn games_lists_root() {
+    let (pool, _node) = db().await;
+    let t = token(Uuid::new_v4(), "ada@x.com", None);
+    let (status, body) = call(&pool, "GET", "/games", Some(&t)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains(r#""id":"root""#), "{body}");
+    assert_eq!(call(&pool, "GET", "/games", None).await.0, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn record_list_view_and_delete_a_session() {
+    let (pool, _node) = db().await;
+    let t = token(Uuid::new_v4(), "ada@x.com", None);
+    call(&pool, "GET", "/me", Some(&t)).await;
+    let (status, body) = send(&pool, "POST", "/sessions", &t, root_session()).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    let id = serde_json::from_str::<serde_json::Value>(&body).unwrap()["id"].as_str().unwrap().to_owned();
+    // A later play date sorts first.
+    let mut later = root_session();
+    later["played_on"] = "2026-11-21".into();
+    send(&pool, "POST", "/sessions", &t, later).await;
+    let (_, list) = call(&pool, "GET", "/sessions", Some(&t)).await;
+    let list: serde_json::Value = serde_json::from_str(&list).unwrap();
+    assert_eq!(list[0]["played_on"], "2026-11-21");
+    assert_eq!(list.as_array().unwrap().len(), 2);
+    let (status, body) = call(&pool, "GET", &format!("/sessions/{id}"), Some(&t)).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains(r#""played_on":"2026-11-20""#) && body.contains("marquise_de_cat"), "{body}");
+    assert_eq!(call(&pool, "DELETE", &format!("/sessions/{id}"), Some(&t)).await.0, StatusCode::NO_CONTENT);
+    assert_eq!(call(&pool, "GET", &format!("/sessions/{id}"), Some(&t)).await.0, StatusCode::NOT_FOUND);
+    assert_eq!(call(&pool, "DELETE", &format!("/sessions/{id}"), Some(&t)).await.0, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn played_on_defaults_to_today() {
+    let (pool, _node) = db().await;
+    let t = token(Uuid::new_v4(), "ada@x.com", None);
+    call(&pool, "GET", "/me", Some(&t)).await;
+    let mut s = root_session();
+    s.as_object_mut().unwrap().remove("played_on");
+    assert_eq!(send(&pool, "POST", "/sessions", &t, s).await.0, StatusCode::CREATED);
+    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM sessions WHERE played_on = CURRENT_DATE").fetch_one(&pool).await.unwrap();
+    assert_eq!(n, 1);
+}
+
+#[tokio::test]
+async fn sessions_are_private_to_their_recorder() {
+    let (pool, _node) = db().await;
+    let (ada, bo) = (token(Uuid::new_v4(), "ada@x.com", None), token(Uuid::new_v4(), "bo@x.com", None));
+    call(&pool, "GET", "/me", Some(&ada)).await;
+    call(&pool, "GET", "/me", Some(&bo)).await;
+    let (_, body) = send(&pool, "POST", "/sessions", &ada, root_session()).await;
+    let id = serde_json::from_str::<serde_json::Value>(&body).unwrap()["id"].as_str().unwrap().to_owned();
+    assert_eq!(call(&pool, "GET", &format!("/sessions/{id}"), Some(&bo)).await.0, StatusCode::NOT_FOUND);
+    assert_eq!(call(&pool, "DELETE", &format!("/sessions/{id}"), Some(&bo)).await.0, StatusCode::NOT_FOUND);
+    assert_eq!(call(&pool, "GET", "/sessions", Some(&bo)).await.1, "[]");
+    assert_eq!(call(&pool, "GET", &format!("/sessions/{id}"), Some(&ada)).await.0, StatusCode::OK);
+    assert_eq!(call(&pool, "GET", "/sessions", None).await.0, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn invalid_sessions_are_rejected_with_a_message() {
+    let (pool, _node) = db().await;
+    let t = token(Uuid::new_v4(), "ada@x.com", None);
+    call(&pool, "GET", "/me", Some(&t)).await;
+    let mut under_30 = root_session();
+    under_30["result"]["players"]["Ada"]["score"] = 29.into();
+    let mut unknown = root_session();
+    unknown["game"] = "chess".into();
+    let mut zero = root_session();
+    zero["duration_minutes"] = 0.into();
+    for (body, expect) in [(under_30, "30 points"), (unknown, "unknown game"), (zero, "duration")] {
+        let (status, msg) = send(&pool, "POST", "/sessions", &t, body).await;
+        assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+        assert!(msg.contains(expect), "{msg}");
+    }
+    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM sessions").fetch_one(&pool).await.unwrap();
+    assert_eq!(n, 0);
+}
+
+#[tokio::test]
+async fn purging_a_user_removes_their_sessions() {
+    let (pool, _node) = db().await;
+    let id = Uuid::new_v4();
+    let t = token(id, "ada@x.com", None);
+    call(&pool, "GET", "/me", Some(&t)).await;
+    send(&pool, "POST", "/sessions", &t, root_session()).await;
+    sqlx::query("DELETE FROM users WHERE id = $1").bind(id).execute(&pool).await.unwrap();
+    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM sessions").fetch_one(&pool).await.unwrap();
+    assert_eq!(n, 0);
 }

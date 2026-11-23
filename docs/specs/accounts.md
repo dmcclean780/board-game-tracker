@@ -23,7 +23,7 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
 - **ACC-6** `POST /me/restore` cancels a scheduled deletion and returns `204`.
   Tests: integration `delete_then_restore`
 - **ACC-7** A User must have a non-blank display name (database check).
-  Tests: none (the equivalent `players` check is tested by `players_rejects_blank_name`)
+  Tests: none
 - **ACC-8** A background task runs when the backend starts and then once every 24 hours. It permanently deletes every User whose deletion was requested more than 30 days ago: first the provider account (`DELETE {AUTH_URL}/admin/users/{id}` with the service key), then the row.
   Tests: integration `purge_removes_only_users_past_grace_period` (cut-off); schedule: none
 - **ACC-9** The provider answering "not found" counts as already deleted. Any other provider failure keeps the row, logs it, and retries on the next run.
@@ -39,7 +39,7 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
 | `DELETE /me` | `204` | `401`, `404`, `500` |
 | `POST /me/restore` | `204` | `401`, `404`, `500` |
 
-Table `users(id, email, display_name, created_at, deletion_requested_at)`, migration `0002_users.sql`. `players` is separate and unchanged.
+Table `users(id, email, display_name, created_at, deletion_requested_at)`, migration `0002_users.sql`. Deleting a User row also deletes their Sessions ([SES-8](sessions.md)).
 
 ## Not yet
 

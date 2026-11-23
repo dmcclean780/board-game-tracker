@@ -86,3 +86,30 @@ test("delete the account, then restore it on next sign-in", async ({ page }) => 
   await page.getByRole("button", { name: "Restore account" }).click();
   await expect(page.getByRole("heading", { name: "Hi, Ada" })).toBeVisible();
 });
+
+test("record a Root session, view it and delete it", async ({ page }) => {
+  await signUpAndVerify(page, uniqueEmail());
+  await expect(page.getByText("No sessions yet.")).toBeVisible();
+  await page.getByRole("button", { name: "Record session" }).click();
+  await page.getByLabel("Player 1 name").fill("Ada");
+  await page.getByLabel("Player 1 score").fill("30");
+  await page.getByRole("button", { name: "Winner?" }).first().click();
+  await page.getByLabel("Player 2 name").fill("Bo");
+  await page.getByRole("button", { name: /^Faction:/ }).nth(1).click(); // players need different factions
+  await page.getByRole("button", { name: "Save session" }).click();
+  await page.getByText(/· Root · Won by Ada/).click();
+  await expect(page.getByText("30 point victory")).toBeVisible();
+  await page.getByRole("button", { name: "Delete session" }).click();
+  await page.getByRole("button", { name: "Confirm delete" }).click();
+  await expect(page.getByText("No sessions yet.")).toBeVisible();
+});
+
+test("an invalid Root result shows the server's message", async ({ page }) => {
+  await signUpAndVerify(page, uniqueEmail());
+  await page.getByRole("button", { name: "Record session" }).click();
+  await page.getByLabel("Player 1 name").fill("Ada");
+  await page.getByLabel("Player 2 name").fill("Bo");
+  await page.getByRole("button", { name: /^Faction:/ }).nth(1).click();
+  await page.getByRole("button", { name: "Save session" }).click(); // nobody won
+  await expect(page.getByRole("alert")).toContainText("exactly one player must win");
+});

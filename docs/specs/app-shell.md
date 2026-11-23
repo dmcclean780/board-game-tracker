@@ -14,7 +14,7 @@ Decide which screen a visitor sees from their sign-in state, and give signed-in 
   Tests: none
 - **SHELL-3** A signed-in User without a scheduled deletion sees the home screen at `/`.
   Tests: e2e `sign up, verify email, sign out and sign back in`
-- **SHELL-4** The home screen shows "Hi, <display name>", the text "No games yet.", and the buttons "Sign out" and "Delete account".
+- **SHELL-4** The home screen shows "Hi, <display name>", the Session list or "No sessions yet." ([SES-9](sessions.md)), and the buttons "Record session", "Sign out" and "Delete account".
   Tests: jest `greets the user and shows the empty state`
 - **SHELL-5** "Delete account" first asks for confirmation ("Your account will be deleted in 30 days. Sign in before then to restore it."). "Cancel" backs out; "Confirm delete" calls `DELETE /me` and signs the User out. If the call fails, "Could not delete the account. Try again." is shown and the User stays signed in.
   Tests: jest `deleting the account asks for confirmation first`; e2e `delete the account, then restore it on next sign-in`; failure message: none
@@ -27,11 +27,11 @@ Decide which screen a visitor sees from their sign-in state, and give signed-in 
 
 ## Interfaces
 
-Routes in `frontend/src/app/`: `login`, `sign-up`, `forgot-password`, `reset-password`, `index` (home), `restore`. Static web export (`web.output: static`), so each route is its own HTML file.
+Routes in `frontend/src/app/`: `login`, `sign-up`, `forgot-password`, `reset-password`, `index` (home), `restore`, `sessions/new` and `sessions/[id]` (signed-in Users without a scheduled deletion). Static web export (`web.output: static`), so each route is its own HTML file.
 
 ## Not yet
 
-Any board-game content on the home screen; native iOS and Android; account settings.
+Native iOS and Android; account settings.
 
 ## Code
 
