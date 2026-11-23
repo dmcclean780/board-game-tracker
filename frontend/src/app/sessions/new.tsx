@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { api, useAuth } from "../../auth";
-import { Button, Field, Message, Screen } from "../../components/ui";
+import { Button, DateField, Field, Message, Screen, Select } from "../../components/ui";
 import { games } from "../../games";
 
 export default function NewSession() {
@@ -36,11 +36,11 @@ export default function NewSession() {
   const ids = available ?? Object.keys(games);
   return (
     <Screen title="Record session">
-      {ids.length > 1 && <Button secondary title={`Game: ${games[game].name}`} onPress={() => setGame(ids[(ids.indexOf(game) + 1) % ids.length])} />}
-      <Field label="Play date (YYYY-MM-DD)" value={date} onChangeText={setDate} />
-      <Field label="Duration in minutes (optional)" keyboardType="number-pad" value={minutes} onChangeText={setMinutes} />
-      <Field label="Notes (optional)" value={notes} onChangeText={setNotes} />
+      <Select label="Game" value={game} options={ids.map((id) => ({ value: id, label: games[id].name }))} onChange={setGame} />
+      <DateField label="Play date" value={date} onChange={setDate} />
+      <Field label="Duration in minutes (optional)" hint="e.g. 90" keyboardType="number-pad" value={minutes} onChangeText={setMinutes} />
       <Form key={game} onChange={setValue} />
+      <Field label="Notes (optional)" value={notes} onChangeText={setNotes} />
       <Message error text={error} />
       <Button title="Save session" onPress={save} disabled={!value} />
       <Button secondary title="Cancel" onPress={() => router.back()} />

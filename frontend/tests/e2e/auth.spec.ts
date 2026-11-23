@@ -91,11 +91,11 @@ test("record a Root session, view it and delete it", async ({ page }) => {
   await signUpAndVerify(page, uniqueEmail());
   await expect(page.getByText("No sessions yet.")).toBeVisible();
   await page.getByRole("button", { name: "Record session" }).click();
+  await expect(page.getByLabel("Game")).toHaveValue("root");
   await page.getByLabel("Player 1 name").fill("Ada");
   await page.getByLabel("Player 1 score").fill("30");
-  await page.getByRole("button", { name: "Winner?" }).first().click();
+  await page.getByLabel("Player 1 winner").click();
   await page.getByLabel("Player 2 name").fill("Bo");
-  await page.getByRole("button", { name: /^Faction:/ }).nth(1).click(); // players need different factions
   await page.getByRole("button", { name: "Save session" }).click();
   await page.getByText(/· Root · Won by Ada/).click();
   await expect(page.getByText("30 point victory")).toBeVisible();
@@ -104,12 +104,32 @@ test("record a Root session, view it and delete it", async ({ page }) => {
   await expect(page.getByText("No sessions yet.")).toBeVisible();
 });
 
+test("a Vagabond coalition wins with its partner", async ({ page }) => {
+  await signUpAndVerify(page, uniqueEmail());
+  await page.getByRole("button", { name: "Record session" }).click();
+  await page.getByLabel("Player 1 name").fill("Ada");
+  await page.getByLabel("Player 2 name").fill("Bo");
+  await page.getByLabel("Player 2 faction").selectOption("vagabond");
+  await page.getByLabel("Player 2 coalition with").selectOption({ label: "Ada" });
+  await page.getByLabel("Player 1 winner").click();
+  await expect(page.getByLabel("Player 2 winner (with Ada)")).toBeDisabled();
+  await page.getByLabel("Won by dominance").click();
+  await page.getByRole("button", { name: "Save session" }).click();
+  await expect(page.getByText(/· Root · Won by Ada, Bo/)).toBeVisible();
+});
+
+test("a faction another player holds cannot be picked", async ({ page }) => {
+  await signUpAndVerify(page, uniqueEmail());
+  await page.getByRole("button", { name: "Record session" }).click();
+  await expect(page.getByLabel("Player 2 faction").locator("option", { hasText: "Marquise de Cat (taken)" })).toBeDisabled();
+  await expect(page.getByLabel("Player 2 faction").locator("option", { hasText: /^Vagabond$/ })).toBeEnabled();
+});
+
 test("an invalid Root result shows the server's message", async ({ page }) => {
   await signUpAndVerify(page, uniqueEmail());
   await page.getByRole("button", { name: "Record session" }).click();
   await page.getByLabel("Player 1 name").fill("Ada");
   await page.getByLabel("Player 2 name").fill("Bo");
-  await page.getByRole("button", { name: /^Faction:/ }).nth(1).click();
   await page.getByRole("button", { name: "Save session" }).click(); // nobody won
   await expect(page.getByRole("alert")).toContainText("exactly one player must win");
 });

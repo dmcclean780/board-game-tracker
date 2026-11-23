@@ -28,10 +28,14 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
   Tests: integration `purging_a_user_removes_their_sessions`
 - **SES-9** The home screen lists the User's Sessions as "<date> · <game> · Won by <winners>", or "No sessions yet.", and opens one when pressed.
   Tests: jest `lists recorded sessions with their winners`, `greets the user and shows the empty state`; e2e `record a Root session, view it and delete it`
-- **SES-10** "Record session" opens a form for the play date, optional duration and notes, and the Game's own form; "Save session" sends it and returns home, and a `422` reason is shown as an error.
+- **SES-10** "Record session" opens a form with, in order: a Game dropdown (always shown, even with one Game), the play date (the browser's date input on web), optional duration, the Game's own form, and optional notes; "Save session" sends it and returns home, and a `422` reason is shown as an error.
   Tests: e2e `record a Root session, view it and delete it`, `an invalid Root result shows the server's message`
-- **SES-11** The Root form takes, per Player, a name, faction, score and winner flag, and a coalition partner only when the faction is Vagabond; the victory type is Points or Dominance.
-  Tests: jest `reports players and Root result as they are typed`, `only a Vagabond can pick a coalition partner`
+- **SES-11** The Root form shows one card per Player with a name, a faction dropdown, a score and a winner checkbox, a "Remove player" button, and a "Won by dominance" checkbox for the Session (unticked means a Points victory). A new Player starts on a faction no other Player holds.
+  Tests: jest `reports players and a points Result as they are typed`, `'Won by dominance' sets the victory type`
+- **SES-13** In the faction dropdown, a faction held by another Player is shown as "<faction> (taken)" and cannot be picked; Vagabond is never taken.
+  Tests: jest `a faction held by another player cannot be picked, except Vagabond`; e2e `a faction another player holds cannot be picked`
+- **SES-14** A Vagabond Player has a "coalition with" dropdown listing "Nobody" and the other non-Vagabond Players. With a partner, the Vagabond's winner checkbox is disabled, reads "winner (with <partner>)" and follows the partner's; the link survives renaming the partner, and is dropped if either Player's faction changes so it is no longer valid.
+  Tests: jest `a coalition Vagabond wins with their partner, and keeps them when renamed`, `leaving Vagabond drops the coalition`; e2e `a Vagabond coalition wins with its partner`
 - **SES-12** A Session screen shows the date, Game, Result, duration and notes; "Delete session" asks for confirmation, then deletes and returns home.
   Tests: e2e `record a Root session, view it and delete it`
 

@@ -25,6 +25,11 @@ Decide which screen a visitor sees from their sign-in state, and give signed-in 
 - **SHELL-8** `/reset-password` is reachable whether or not the User is signed in, because the reset link signs them in.
   Tests: e2e `reset a forgotten password`
 
+- **SHELL-9** Every screen scrolls when its content is taller than the window, and its content is at most 560 px wide.
+  Tests: none (checked by hand at desktop and phone widths)
+- **SHELL-10** Every text box shows its label above it; grey hint text (never the label) appears only when it is empty.
+  Tests: e2e (all flows locate boxes by label)
+
 ## Interfaces
 
 Routes in `frontend/src/app/`: `login`, `sign-up`, `forgot-password`, `reset-password`, `index` (home), `restore`, `sessions/new` and `sessions/[id]` (signed-in Users without a scheduled deletion). Static web export (`web.output: static`), so each route is its own HTML file.
