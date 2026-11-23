@@ -3,25 +3,67 @@ import { games } from "../src/games";
 
 const Form = games.root.Form;
 const pick = (label: string, value: string) => fireEvent(screen.getByLabelText(label), "valueChange", value);
+const type = (label: string, text: string) => fireEvent.changeText(screen.getByLabelText(label), text);
 const last = (fn: jest.Mock) => fn.mock.calls.at(-1)[0];
+const names = async () => {
+  await type("Player 1 name", "Ada");
+  await type("Player 2 name", "Bo");
+};
 
-test("reports players and a points Result as they are typed", async () => {
+test("reports players and a points Result once the form is valid", async () => {
   const onChange = jest.fn();
   await render(<Form onChange={onChange} />);
-  await fireEvent.changeText(screen.getByLabelText("Player 1 name"), "Ada");
-  await fireEvent.changeText(screen.getByLabelText("Player 1 score"), "30");
-  await fireEvent.press(screen.getByLabelText("Player 1 winner"));
+  expect(last(onChange)).toBeNull();
+  await names();
+  await type("Player 1 score", "30");
+  await fireEvent.press(screen.getByLabelText("Player 1 won"));
   const { players, result } = last(onChange);
-  expect(players).toEqual(["Ada", ""]);
+  expect(players).toEqual(["Ada", "Bo"]);
   expect(result.victory).toBe("points");
   expect(result.players.Ada).toEqual({ faction: "marquise_de_cat", score: 30, winner: true, partner: null });
+});
+
+test("explains what is wrong and reports nothing until it is fixed", async () => {
+  const onChange = jest.fn();
+  await render(<Form onChange={onChange} />);
+  expect(screen.getByText("Enter a name for every player.")).toBeTruthy();
+  await names();
+  expect(screen.getByText("Tick Won for the player who won.")).toBeTruthy();
+  await fireEvent.press(screen.getByLabelText("Player 1 won"));
+  expect(screen.getByText(/at least 30 points/)).toBeTruthy();
+  expect(last(onChange)).toBeNull();
+  await type("Player 1 score", "30");
+  expect(last(onChange)).not.toBeNull();
+  await type("Player 2 name", "Ada");
+  expect(screen.getByText("Player names must be different.")).toBeTruthy();
+});
+
+test("only one player can be marked as having won", async () => {
+  const onChange = jest.fn();
+  await render(<Form onChange={onChange} />);
+  await names();
+  await fireEvent.press(screen.getByLabelText("Player 1 won"));
+  await fireEvent.press(screen.getByLabelText("Player 2 won"));
+  expect(screen.getByLabelText("Player 1 won").props.accessibilityState.checked).toBe(false);
+  expect(screen.getByLabelText("Player 2 won").props.accessibilityState.checked).toBe(true);
+});
+
+test("a dominance victory needs no points", async () => {
+  const onChange = jest.fn();
+  await render(<Form onChange={onChange} />);
+  await names();
+  await fireEvent.press(screen.getByLabelText("Player 1 won"));
+  expect(last(onChange)).toBeNull();
+  await fireEvent.press(screen.getByLabelText("Won by dominance"));
+  expect(last(onChange).result.victory).toBe("dominance");
 });
 
 test("a faction held by another player cannot be picked, except Vagabond", async () => {
   const onChange = jest.fn();
   await render(<Form onChange={onChange} />);
-  await fireEvent.changeText(screen.getByLabelText("Player 1 name"), "Ada");
-  await fireEvent.changeText(screen.getByLabelText("Player 2 name"), "Bo");
+  await names();
+  await fireEvent.press(screen.getByLabelText("Player 1 won"));
+  await fireEvent.press(screen.getByLabelText("Won by dominance"));
   expect(last(onChange).result.players.Bo.faction).toBe("eyrie_dynasties"); // a new player starts on a free faction
   await pick("Player 2 faction", "marquise_de_cat"); // taken: ignored
   expect(last(onChange).result.players.Bo.faction).toBe("eyrie_dynasties");
@@ -30,36 +72,43 @@ test("a faction held by another player cannot be picked, except Vagabond", async
   expect(last(onChange).result.players.Bo.faction).toBe("vagabond");
 });
 
+test("coalitions exist only for a Vagabond in a dominance victory", async () => {
+  await render(<Form onChange={jest.fn()} />);
+  await pick("Player 2 faction", "vagabond");
+  expect(screen.queryByLabelText("Player 2 coalition with")).toBeNull(); // not dominance
+  await fireEvent.press(screen.getByLabelText("Won by dominance"));
+  expect(screen.getByLabelText("Player 2 coalition with")).toBeTruthy();
+  expect(screen.queryByLabelText("Player 1 coalition with")).toBeNull(); // not a Vagabond
+});
+
 test("a coalition Vagabond wins with their partner, and keeps them when renamed", async () => {
   const onChange = jest.fn();
   await render(<Form onChange={onChange} />);
-  expect(screen.queryByLabelText("Player 2 coalition with")).toBeNull();
-  await fireEvent.changeText(screen.getByLabelText("Player 1 name"), "Ada");
-  await fireEvent.changeText(screen.getByLabelText("Player 2 name"), "Bo");
+  await names();
+  await fireEvent.press(screen.getByLabelText("Won by dominance"));
   await pick("Player 2 faction", "vagabond");
   await pick("Player 2 coalition with", "0");
-  await fireEvent.press(screen.getByLabelText("Player 1 winner"));
-  await fireEvent.changeText(screen.getByLabelText("Player 1 name"), "Ada L");
+  await fireEvent.press(screen.getByLabelText("Player 1 won"));
+  await type("Player 1 name", "Ada L");
   const { Bo, "Ada L": ada } = last(onChange).result.players;
   expect(ada.winner).toBe(true);
   expect(Bo).toMatchObject({ winner: true, partner: "Ada L" });
-  expect(screen.getByLabelText("Player 2 winner (with Ada L)")).toBeTruthy();
+  expect(screen.getByLabelText("Player 2 won (with Ada L)")).toBeTruthy();
 });
 
-test("leaving Vagabond drops the coalition", async () => {
+test("leaving dominance or Vagabond drops the coalition", async () => {
   const onChange = jest.fn();
   await render(<Form onChange={onChange} />);
-  await fireEvent.changeText(screen.getByLabelText("Player 1 name"), "Ada");
-  await fireEvent.changeText(screen.getByLabelText("Player 2 name"), "Bo");
+  await names();
+  await fireEvent.press(screen.getByLabelText("Player 1 won"));
+  await fireEvent.press(screen.getByLabelText("Won by dominance"));
   await pick("Player 2 faction", "vagabond");
   await pick("Player 2 coalition with", "0");
+  expect(last(onChange).result.players.Bo.partner).toBe("Ada");
   await pick("Player 2 faction", "lizard_cult");
   expect(last(onChange).result.players.Bo.partner).toBeNull();
-});
-
-test("'Won by dominance' sets the victory type", async () => {
-  const onChange = jest.fn();
-  await render(<Form onChange={onChange} />);
-  await fireEvent.press(screen.getByLabelText("Won by dominance"));
-  expect(last(onChange).result.victory).toBe("dominance");
+  await pick("Player 2 faction", "vagabond");
+  await pick("Player 2 coalition with", "0");
+  await fireEvent.press(screen.getByLabelText("Won by dominance")); // off: points need 30
+  expect(screen.queryByLabelText("Player 2 coalition with")).toBeNull();
 });

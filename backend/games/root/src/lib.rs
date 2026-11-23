@@ -67,6 +67,9 @@ impl Game for Root {
         // A Vagabond with a partner wins or loses together with that partner.
         for (name, p) in &r.players {
             let Some(partner) = &p.partner else { continue };
+            if r.victory != Victory::Dominance {
+                return Err(format!("{name}: a coalition needs a dominance victory"));
+            }
             let q = r.players.get(partner).filter(|_| partner != name);
             match q {
                 Some(q) if p.faction == Faction::Vagabond && q.faction != Faction::Vagabond => {
@@ -156,6 +159,13 @@ mod tests {
         assert!(check(&["a", "b", "c"], with(true, "c", "vagabond")).is_err()); // partner is a Vagabond
         assert!(check(&["a", "b", "c"], with(true, "zed", "vagabond")).is_err()); // partner not in session
         assert!(check(&["a", "b", "c"], with(true, "a", "eyrie_dynasties")).is_err()); // only Vagabonds partner
+    }
+
+    #[test]
+    fn coalition_needs_dominance() {
+        let vag = json!({ "faction": "vagabond", "score": 3, "winner": true, "partner": "a" });
+        let r = json!({ "victory": "points", "players": { "a": p("lizard_cult", 30, true), "b": vag } });
+        assert!(check(&["a", "b"], r).unwrap_err().contains("dominance"));
     }
 
     #[test]

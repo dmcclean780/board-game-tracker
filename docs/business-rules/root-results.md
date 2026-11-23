@@ -13,7 +13,7 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 ## BR-ROOT-002 — One winner plus coalition Vagabonds
 
 - Status: active
-- Rule: Exactly one Player wins in their own right, and any Vagabond in a Coalition with that Player wins too, so a Session has one winner plus Coalition Vagabonds.
+- Rule: Exactly one Player wins in their own right, and any Vagabond in a Coalition with that Player (Dominance victory only, BR-ROOT-004) wins too, so a Points victory has one winner and a Dominance victory has one winner plus Coalition Vagabonds.
 - Rationale: Root has a single victor, and a Coalition lets Vagabonds share it.
 - Enforced in: `backend/games/root/src/lib.rs`
 - Tests: `needs_exactly_one_winner`, `two_vagabonds_may_share_a_coalition_partner`
@@ -29,10 +29,10 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 ## BR-ROOT-004 — Coalition partners
 
 - Status: active
-- Rule: Only a Vagabond has a Coalition partner. The partner is another Player in the Session who is not a Vagabond, and the Vagabond wins exactly when the partner wins. Two Vagabonds may choose the same partner.
+- Rule: A Coalition only exists in a Dominance victory. Only a Vagabond has a Coalition partner. The partner is another Player in the Session who is not a Vagabond, and the Vagabond wins exactly when the partner wins. Two Vagabonds may choose the same partner.
 - Rationale: A Vagabond cannot win alone by Coalition and shares the partner's victory.
 - Enforced in: `backend/games/root/src/lib.rs`
-- Tests: `bad_coalitions`, `two_vagabonds_may_share_a_coalition_partner`
+- Tests: `bad_coalitions`, `coalition_needs_dominance`, `two_vagabonds_may_share_a_coalition_partner`
 
 ## BR-ROOT-005 — Scores and player list
 
