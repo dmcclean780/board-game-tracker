@@ -23,6 +23,11 @@ export function Field({ label, hint, ...props }: TextInputProps & { label: strin
   );
 }
 
+/** A heading that starts a section of a form. */
+export function Heading({ text }: { text: string }) {
+  return <Text accessibilityRole="header" style={s.heading}>{text}</Text>;
+}
+
 export type Option = { value: string; label: string; disabled?: boolean };
 
 /** A dropdown for choosing one of several options. Disabled options cannot be picked. */
@@ -81,6 +86,7 @@ const s = StyleSheet.create({
   screen: { flexGrow: 1, alignItems: "center", padding: 16 },
   card: { width: "100%", maxWidth: 560, gap: 12, paddingVertical: 16 },
   field: { gap: 4 },
+  heading: { fontSize: 18, fontWeight: "600", marginTop: 8, borderBottomWidth: 1, borderBottomColor: "#ddd", paddingBottom: 4 },
   label: { fontSize: 14, fontWeight: "500" },
   checkRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   box: { width: 22, height: 22, borderWidth: 1, borderColor: "#1a56db", borderRadius: 4, alignItems: "center", justifyContent: "center" },

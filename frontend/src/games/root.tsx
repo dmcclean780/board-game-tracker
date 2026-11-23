@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
-import { Button, Checkbox, Field, Message, Select } from "../components/ui";
+import { Button, Checkbox, Field, Heading, Message, Select } from "../components/ui";
 import type { GameDef, Session } from "./index";
 
 const FACTIONS: [string, string][] = [
@@ -14,11 +14,13 @@ const FACTIONS: [string, string][] = [
   ["corvid_conspiracy", "Corvid Conspiracy"],
   ["keepers_in_iron", "Keepers in Iron"],
   ["lord_of_the_hundreds", "Lord of the Hundreds"],
+  ["lilypad_diaspora", "Lilypad Diaspora"],
+  ["twilight_council", "Twilight Council"],
+  ["knaves_of_the_deepwood", "Knaves of the Deepwood"],
 ];
-const MAPS: [string, string][] = [["autumn", "Autumn"], ["winter", "Winter"], ["lake", "Lake"], ["mountain", "Mountain"]];
-const DECKS: [string, string][] = [["standard", "Standard"]];
-const LANDMARKS: [string, string][] = [["black_market", "Black Market"], ["elder_treetop", "Elder Treetop"], ["legendary_forge", "Legendary Forge"], ["lost_city", "Lost City"]];
-const MAX_LANDMARKS = 2;
+const MAPS: [string, string][] = [["autumn", "Autumn"], ["winter", "Winter"], ["lake", "Lake"], ["mountain", "Mountain"], ["marsh", "Marsh"], ["gorge", "Gorge"]];
+const DECKS: [string, string][] = [["standard", "Standard"], ["exiles_and_partisans", "Exiles and Partisans"], ["squires_and_disciples", "Squires and Disciples"]];
+const LANDMARKS: [string, string][] = [["black_market", "Black Market"], ["elder_treetop", "Elder Treetop"], ["legendary_forge", "Legendary Forge"], ["lost_city", "Lost City"], ["mousehold", "Mousehold"], ["foxburrow", "Foxburrow"], ["rabbittown", "Rabbittown"], ["the_ferry", "The Ferry"], ["the_tower", "The Tower"]];
 const labelOf = (list: [string, string][], id: string) => list.find(([k]) => k === id)?.[1] ?? id;
 const factionName = (id: string) => FACTIONS.find(([k]) => k === id)?.[1] ?? id;
 
@@ -46,7 +48,7 @@ function problem(rows: Row[], dominance: boolean): string | null {
   if (new Set(names).size !== names.length) return "Player names must be different.";
   const leaders = rows.filter((r) => r.winner && r.partner === null);
   if (leaders.length !== 1) return "Tick Won for the player who won.";
-  if (!dominance && Number(leaders[0].score) < 30) return "A 30 point victory needs at least 30 points; tick \"Won by dominance\" otherwise.";
+  if (!dominance && Number(leaders[0].score) < 30) return "A 30 point victory needs at least 30 points; choose Dominance otherwise.";
   if (rows.some((r) => Number(r.score) < 0)) return "Scores cannot be negative.";
   return null;
 }
@@ -88,19 +90,23 @@ function RootForm({ onChange }: { onChange: (v: Value) => void }) {
 
   return (
     <View style={{ gap: 12 }}>
+      <Heading text="Setup" />
       <Select label="Map" value={map} options={MAPS.map(([value, label]) => ({ value, label }))} onChange={setMap} />
       <Select label="Deck" value={deck} options={DECKS.map(([value, label]) => ({ value, label }))} onChange={setDeck} />
-      <Text style={{ fontWeight: "500" }}>Landmarks (up to {MAX_LANDMARKS})</Text>
+      <Text style={{ fontWeight: "500" }}>Landmarks</Text>
       {LANDMARKS.map(([id, label]) => (
         <Checkbox
           key={id}
           label={label}
           checked={landmarks.includes(id)}
-          disabled={!landmarks.includes(id) && landmarks.length >= MAX_LANDMARKS}
           onChange={(on) => setLandmarks((l) => (on ? [...l, id] : l.filter((x) => x !== id)))}
         />
       ))}
-      <Checkbox label="Won by dominance" checked={dominance} onChange={toggleDominance} />
+      <Heading text="Win condition" />
+      {/* Like radio buttons: one is always ticked, and ticking one unticks the other. */}
+      <Checkbox label="30 Points" checked={!dominance} onChange={(on) => on && toggleDominance(false)} />
+      <Checkbox label="Dominance" checked={dominance} onChange={(on) => on && toggleDominance(true)} />
+      <Heading text="Players" />
       {rows.map((r, i) => (
         <View key={i} style={{ gap: 8, borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12 }}>
           <Text style={{ fontWeight: "600" }}>Player {i + 1}</Text>

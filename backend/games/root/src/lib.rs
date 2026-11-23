@@ -16,6 +16,9 @@ pub enum Faction {
     CorvidConspiracy,
     KeepersInIron,
     LordOfTheHundreds,
+    LilypadDiaspora,
+    TwilightCouncil,
+    KnavesOfTheDeepwood,
 }
 
 #[derive(Deserialize, PartialEq, Eq, Debug)]
@@ -32,12 +35,16 @@ pub enum Map {
     Winter,
     Lake,
     Mountain,
+    Marsh,
+    Gorge,
 }
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub enum Deck {
     Standard,
+    ExilesAndPartisans,
+    SquiresAndDisciples,
 }
 
 #[derive(Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -47,10 +54,12 @@ pub enum Landmark {
     ElderTreetop,
     LegendaryForge,
     LostCity,
+    Mousehold,
+    Foxburrow,
+    Rabbittown,
+    TheFerry,
+    TheTower,
 }
-
-/// Landmarks in play at once.
-const MAX_LANDMARKS: usize = 2;
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -82,8 +91,8 @@ impl Game for Root {
     type Result = RootResult;
 
     fn check(players: &[String], r: &RootResult) -> Result<(), String> {
-        if r.landmarks.len() > MAX_LANDMARKS || r.landmarks.iter().collect::<HashSet<_>>().len() != r.landmarks.len() {
-            return Err(format!("choose each landmark at most once, and no more than {MAX_LANDMARKS}"));
+        if r.landmarks.iter().collect::<HashSet<_>>().len() != r.landmarks.len() {
+            return Err("choose each landmark at most once".into());
         }
         let names: HashSet<&String> = players.iter().collect();
         if r.players.len() != names.len() || r.players.keys().any(|k| !names.contains(k)) {
@@ -142,6 +151,12 @@ mod tests {
 
     fn p(faction: &str, score: i32, winner: bool) -> Value {
         json!({ "faction": faction, "score": score, "winner": winner })
+    }
+
+    #[test]
+    fn homeland_factions() {
+        let r = json!({ "victory": "dominance", "players": { "a": p("lilypad_diaspora", 1, true), "b": p("twilight_council", 1, false), "c": p("knaves_of_the_deepwood", 1, false) } });
+        assert!(check(&["a", "b", "c"], r).is_ok());
     }
 
     #[test]
@@ -214,11 +229,13 @@ mod tests {
             r
         };
         assert!(check(&["a"], base(json!({ "map": "mountain", "landmarks": ["black_market", "lost_city"] }))).is_ok());
-        assert!(check(&["a"], base(json!({ "map": "marsh" }))).is_err()); // unknown map
+        assert!(check(&["a"], base(json!({ "map": "gorge", "deck": "squires_and_disciples", "landmarks": ["mousehold", "rabbittown"] }))).is_ok());
+        assert!(check(&["a"], base(json!({ "deck": "exiles_and_partisans" }))).is_ok());
+        assert!(check(&["a"], base(json!({ "map": "volcano" }))).is_err()); // unknown map
         assert!(check(&["a"], base(json!({ "deck": "exiles" }))).is_err()); // unknown deck
-        assert!(check(&["a"], base(json!({ "landmarks": ["black_market", "lost_city", "elder_treetop"] }))).is_err()); // too many
+        assert!(check(&["a"], base(json!({ "landmarks": ["black_market", "lost_city", "elder_treetop", "the_ferry", "the_tower"] }))).is_ok()); // any number
         assert!(check(&["a"], base(json!({ "landmarks": ["lost_city", "lost_city"] }))).is_err()); // repeated
-        assert!(check(&["a"], base(json!({ "landmarks": ["the_tower"] }))).is_err()); // unknown landmark
+        assert!(check(&["a"], base(json!({ "landmarks": ["the_moon"] }))).is_err()); // unknown landmark
         assert!(check_session::<Root>(&["a".to_string()], &base(json!({}))).is_err()); // map and deck are required
     }
 

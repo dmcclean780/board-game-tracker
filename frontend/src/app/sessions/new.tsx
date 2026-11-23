@@ -1,7 +1,7 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { api, useAuth } from "../../auth";
-import { Button, DateField, Field, Message, Screen, Select } from "../../components/ui";
+import { Button, DateField, Field, Heading, Message, Screen, Select } from "../../components/ui";
 import { games } from "../../games";
 
 export default function NewSession() {
@@ -36,10 +36,12 @@ export default function NewSession() {
   const ids = available ?? Object.keys(games);
   return (
     <Screen title="Record session">
+      <Heading text="Session" />
       <Select label="Game" value={game} options={ids.map((id) => ({ value: id, label: games[id].name }))} onChange={setGame} />
       <DateField label="Play date" value={date} onChange={setDate} />
       <Field label="Duration in minutes (optional)" hint="e.g. 90" keyboardType="number-pad" value={minutes} onChangeText={setMinutes} />
       <Form key={game} onChange={setValue} />
+      <Heading text="Notes" />
       <Field label="Notes (optional)" value={notes} onChangeText={setNotes} />
       <Message error text={error} />
       <Button title="Save session" onPress={save} disabled={!value} />

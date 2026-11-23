@@ -54,7 +54,7 @@ test("a dominance victory needs no points", async () => {
   await names();
   await fireEvent.press(screen.getByLabelText("Player 1 won"));
   expect(last(onChange)).toBeNull();
-  await fireEvent.press(screen.getByLabelText("Won by dominance"));
+  await fireEvent.press(screen.getByLabelText("Dominance"));
   expect(last(onChange).result.victory).toBe("dominance");
 });
 
@@ -63,7 +63,7 @@ test("a faction held by another player cannot be picked, except Vagabond", async
   await render(<Form onChange={onChange} />);
   await names();
   await fireEvent.press(screen.getByLabelText("Player 1 won"));
-  await fireEvent.press(screen.getByLabelText("Won by dominance"));
+  await fireEvent.press(screen.getByLabelText("Dominance"));
   expect(last(onChange).result.players.Bo.faction).toBe("eyrie_dynasties"); // a new player starts on a free faction
   await pick("Player 2 faction", "marquise_de_cat"); // taken: ignored
   expect(last(onChange).result.players.Bo.faction).toBe("eyrie_dynasties");
@@ -76,7 +76,7 @@ test("coalitions exist only for a Vagabond in a dominance victory", async () => 
   await render(<Form onChange={jest.fn()} />);
   await pick("Player 2 faction", "vagabond");
   expect(screen.queryByLabelText("Player 2 coalition with")).toBeNull(); // not dominance
-  await fireEvent.press(screen.getByLabelText("Won by dominance"));
+  await fireEvent.press(screen.getByLabelText("Dominance"));
   expect(screen.getByLabelText("Player 2 coalition with")).toBeTruthy();
   expect(screen.queryByLabelText("Player 1 coalition with")).toBeNull(); // not a Vagabond
 });
@@ -85,7 +85,7 @@ test("a coalition Vagabond wins with their partner, and keeps them when renamed"
   const onChange = jest.fn();
   await render(<Form onChange={onChange} />);
   await names();
-  await fireEvent.press(screen.getByLabelText("Won by dominance"));
+  await fireEvent.press(screen.getByLabelText("Dominance"));
   await pick("Player 2 faction", "vagabond");
   await pick("Player 2 coalition with", "0");
   await fireEvent.press(screen.getByLabelText("Player 1 won"));
@@ -101,7 +101,7 @@ test("leaving dominance or Vagabond drops the coalition", async () => {
   await render(<Form onChange={onChange} />);
   await names();
   await fireEvent.press(screen.getByLabelText("Player 1 won"));
-  await fireEvent.press(screen.getByLabelText("Won by dominance"));
+  await fireEvent.press(screen.getByLabelText("Dominance"));
   await pick("Player 2 faction", "vagabond");
   await pick("Player 2 coalition with", "0");
   expect(last(onChange).result.players.Bo.partner).toBe("Ada");
@@ -109,23 +109,47 @@ test("leaving dominance or Vagabond drops the coalition", async () => {
   expect(last(onChange).result.players.Bo.partner).toBeNull();
   await pick("Player 2 faction", "vagabond");
   await pick("Player 2 coalition with", "0");
-  await fireEvent.press(screen.getByLabelText("Won by dominance")); // off: points need 30
+  await fireEvent.press(screen.getByLabelText("30 Points")); // dominance off: points need 30
   expect(screen.queryByLabelText("Player 2 coalition with")).toBeNull();
 });
 
-test("reports the map, deck and landmarks, and allows at most two landmarks", async () => {
+test("reports the map, deck and any number of landmarks", async () => {
   const onChange = jest.fn();
   await render(<Form onChange={onChange} />);
   await names();
   await fireEvent.press(screen.getByLabelText("Player 1 won"));
-  await fireEvent.press(screen.getByLabelText("Won by dominance"));
+  await fireEvent.press(screen.getByLabelText("Dominance"));
   expect(last(onChange).result).toMatchObject({ map: "autumn", deck: "standard", landmarks: [] });
   await pick("Map", "lake");
-  await fireEvent.press(screen.getByLabelText("Black Market"));
-  await fireEvent.press(screen.getByLabelText("Lost City"));
-  await fireEvent.press(screen.getByLabelText("Elder Treetop")); // third: disabled
-  expect(last(onChange).result).toMatchObject({ map: "lake", landmarks: ["black_market", "lost_city"] });
-  await fireEvent.press(screen.getByLabelText("Black Market")); // untick frees a slot
-  await fireEvent.press(screen.getByLabelText("Elder Treetop"));
-  expect(last(onChange).result.landmarks).toEqual(["lost_city", "elder_treetop"]);
+  for (const l of ["Black Market", "Lost City", "Elder Treetop", "The Ferry", "The Tower"]) await fireEvent.press(screen.getByLabelText(l));
+  expect(last(onChange).result).toMatchObject({ map: "lake", landmarks: ["black_market", "lost_city", "elder_treetop", "the_ferry", "the_tower"] });
+  await fireEvent.press(screen.getByLabelText("Lost City")); // unticking removes it
+  expect(last(onChange).result.landmarks).not.toContain("lost_city");
+});
+
+test("30 Points and Dominance exclude each other, and one is always chosen", async () => {
+  const onChange = jest.fn();
+  await render(<Form onChange={onChange} />);
+  const checked = (l: string) => screen.getByLabelText(l).props.accessibilityState.checked;
+  expect([checked("30 Points"), checked("Dominance")]).toEqual([true, false]);
+  await fireEvent.press(screen.getByLabelText("Dominance"));
+  expect([checked("30 Points"), checked("Dominance")]).toEqual([false, true]);
+  await fireEvent.press(screen.getByLabelText("Dominance")); // ticking the chosen one again changes nothing
+  expect([checked("30 Points"), checked("Dominance")]).toEqual([false, true]);
+  await fireEvent.press(screen.getByLabelText("30 Points"));
+  expect([checked("30 Points"), checked("Dominance")]).toEqual([true, false]);
+});
+
+test("offers the Exiles and Partisans deck and the Homeland options", async () => {
+  const onChange = jest.fn();
+  await render(<Form onChange={onChange} />);
+  await names();
+  await fireEvent.press(screen.getByLabelText("Player 1 won"));
+  await fireEvent.press(screen.getByLabelText("Dominance"));
+  await pick("Deck", "exiles_and_partisans");
+  await pick("Map", "gorge");
+  await pick("Player 2 faction", "twilight_council");
+  await fireEvent.press(screen.getByLabelText("Mousehold"));
+  expect(last(onChange).result).toMatchObject({ deck: "exiles_and_partisans", map: "gorge", landmarks: ["mousehold"] });
+  expect(last(onChange).result.players.Bo.faction).toBe("twilight_council");
 });

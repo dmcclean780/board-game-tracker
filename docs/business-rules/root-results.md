@@ -45,7 +45,7 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 ## BR-ROOT-006 — Map, deck and landmarks
 
 - Status: active
-- Rule: Every Root Result names one Map (Autumn, Winter, Lake or Mountain) and one Deck (Standard), and lists at most two different Landmarks (Black Market, Elder Treetop, Legendary Forge, Lost City).
-- Rationale: These are the setup choices that change how a game plays; at most two Landmarks are in play at once.
+- Rule: Every Root Result names one Map (Autumn, Winter, Lake, Mountain, Marsh or Gorge) and one Deck (Standard, Exiles and Partisans or Squires and Disciples), and lists any number of different Landmarks (Black Market, Elder Treetop, Legendary Forge, Lost City, Mousehold, Foxburrow, Rabbittown, The Ferry or The Tower). The Faction list includes the Homeland factions Lilypad Diaspora, Twilight Council and Knaves of the Deepwood.
+- Rationale: These are the setup choices that change how a game plays; a Landmark is either in play or not, and cannot be in play twice.
 - Enforced in: `backend/games/root/src/lib.rs`
-- Tests: `map_deck_and_landmarks`
+- Tests: `map_deck_and_landmarks`, `homeland_factions`
