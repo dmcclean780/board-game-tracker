@@ -87,24 +87,34 @@ test("delete the account, then restore it on next sign-in", async ({ page }) => 
   await expect(page.getByRole("heading", { name: "Hi, Ada" })).toBeVisible();
 });
 
+const next = (page: Page) => page.getByRole("button", { name: "Next" }).click();
+
 test("record a Root session, view it and delete it", async ({ page }) => {
   await signUpAndVerify(page, uniqueEmail());
   await expect(page.getByText("No sessions yet.")).toBeVisible();
   await page.getByRole("button", { name: "Record session" }).click();
+  await expect(page.getByText("Step 1 of 5")).toBeVisible();
   await expect(page.getByLabel("Game")).toHaveValue("root");
+  await next(page);
   await expect(page.getByRole("heading", { name: "Setup" })).toBeVisible();
   await page.getByLabel("Map").selectOption("marsh");
   await page.getByLabel("Deck").selectOption("exiles_and_partisans");
   await page.getByLabel("Mousehold").click();
+  await next(page);
   await page.getByLabel("Player 1 name").fill("Ada");
   await page.getByLabel("Player 1 score").fill("30");
   await page.getByLabel("Player 1 won").click();
   await page.getByLabel("Player 2 name").fill("Bo");
+  await next(page);
+  await page.getByLabel("Notes (optional)").fill("Close game");
+  await next(page);
+  await expect(page.getByText("Players: Ada, Bo")).toBeVisible();
   await page.getByRole("button", { name: "Save session" }).click();
   await page.getByText(/· Root · Won by Ada/).click();
   await expect(page.getByText("Marsh map · Exiles and Partisans deck")).toBeVisible();
   await expect(page.getByText("Landmarks: Mousehold")).toBeVisible();
   await expect(page.getByText("30 point victory")).toBeVisible();
+  await expect(page.getByText("Close game")).toBeVisible();
   await page.getByRole("button", { name: "Delete session" }).click();
   await page.getByRole("button", { name: "Confirm delete" }).click();
   await expect(page.getByText("No sessions yet.")).toBeVisible();
@@ -113,13 +123,17 @@ test("record a Root session, view it and delete it", async ({ page }) => {
 test("a Vagabond coalition wins with its partner", async ({ page }) => {
   await signUpAndVerify(page, uniqueEmail());
   await page.getByRole("button", { name: "Record session" }).click();
+  await next(page);
   await page.getByLabel("Dominance").click();
+  await next(page);
   await page.getByLabel("Player 1 name").fill("Ada");
   await page.getByLabel("Player 2 name").fill("Bo");
   await page.getByLabel("Player 2 faction").selectOption("vagabond");
   await page.getByLabel("Player 2 coalition with").selectOption({ label: "Ada" });
   await page.getByLabel("Player 1 won").click();
   await expect(page.getByLabel("Player 2 won (with Ada)")).toBeDisabled();
+  await next(page);
+  await next(page);
   await page.getByRole("button", { name: "Save session" }).click();
   await expect(page.getByText(/· Root · Won by Ada, Bo/)).toBeVisible();
 });
@@ -127,23 +141,30 @@ test("a Vagabond coalition wins with its partner", async ({ page }) => {
 test("a faction another player holds cannot be picked", async ({ page }) => {
   await signUpAndVerify(page, uniqueEmail());
   await page.getByRole("button", { name: "Record session" }).click();
+  await next(page);
+  await next(page);
   await expect(page.getByLabel("Player 2 faction").locator("option", { hasText: "Marquise de Cat (taken)" })).toBeDisabled();
   await expect(page.getByLabel("Player 2 faction").locator("option", { hasText: /^Vagabond$/ })).toBeEnabled();
 });
 
-test("the form explains what is wrong and blocks saving until it is fixed", async ({ page }) => {
+test("the form explains what is wrong and blocks going on until it is fixed", async ({ page }) => {
   await signUpAndVerify(page, uniqueEmail());
   await page.getByRole("button", { name: "Record session" }).click();
+  await next(page);
+  await next(page);
   await page.getByLabel("Player 1 name").fill("Ada");
   await page.getByLabel("Player 2 name").fill("Bo");
   await expect(page.getByText("Tick Won for the player who won.")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Save session" })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Next" })).toBeDisabled();
   await page.getByLabel("Player 1 won").click();
   await expect(page.getByText(/at least 30 points/)).toBeVisible();
   await page.getByLabel("Player 2 won").click(); // only one player can have won
   await expect(page.getByLabel("Player 1 won")).not.toBeChecked();
   await page.getByLabel("Player 2 score").fill("30");
-  await expect(page.getByRole("button", { name: "Save session" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Next" })).toBeEnabled();
   await page.getByLabel("Player 2 faction").selectOption("vagabond");
   await expect(page.getByLabel("Player 2 coalition with")).toHaveCount(0); // only in a dominance victory
+  await page.getByRole("button", { name: "Back" }).click(); // the setup is kept when moving between steps
+  await page.getByRole("button", { name: "Next" }).click();
+  await expect(page.getByLabel("Player 1 name")).toHaveValue("Ada");
 });

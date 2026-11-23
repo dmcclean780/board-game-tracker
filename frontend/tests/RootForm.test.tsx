@@ -153,3 +153,17 @@ test("offers the Exiles and Partisans deck and the Homeland options", async () =
   expect(last(onChange).result).toMatchObject({ deck: "exiles_and_partisans", map: "gorge", landmarks: ["mousehold"] });
   expect(last(onChange).result.players.Bo.faction).toBe("twilight_council");
 });
+
+test("shows one step at a time and keeps what was typed between steps", async () => {
+  const onChange = jest.fn();
+  const { rerender } = await render(<Form onChange={onChange} step="players" />);
+  expect(screen.queryByLabelText("Map")).toBeNull();
+  await type("Player 1 name", "Ada");
+  await rerender(<Form onChange={onChange} step="setup" />);
+  expect(screen.getByLabelText("Map")).toBeTruthy();
+  expect(screen.queryByLabelText("Player 1 name")).toBeNull();
+  await rerender(<Form onChange={onChange} step="none" />);
+  expect(screen.queryByLabelText("Map")).toBeNull();
+  await rerender(<Form onChange={onChange} step="players" />);
+  expect(screen.getByLabelText("Player 1 name").props.value).toBe("Ada");
+});

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Text, View } from "react-native";
 import { Button, Checkbox, Field, Heading, Message, Select } from "../components/ui";
-import type { GameDef, Session } from "./index";
+import type { GameDef, GameStep, Session } from "./index";
 
 const FACTIONS: [string, string][] = [
   ["marquise_de_cat", "Marquise de Cat"],
@@ -55,7 +55,7 @@ function problem(rows: Row[], dominance: boolean): string | null {
 
 type Value = { players: string[]; result: unknown } | null;
 
-function RootForm({ onChange }: { onChange: (v: Value) => void }) {
+function RootForm({ onChange, step }: { onChange: (v: Value) => void; step?: GameStep }) {
   const [rows, setRows] = useState<Row[]>(() => {
     const first = { name: "", faction: FACTIONS[0][0], score: "", winner: false, partner: null };
     return [first, { ...first, faction: freeFaction([first]) }];
@@ -88,8 +88,12 @@ function RootForm({ onChange }: { onChange: (v: Value) => void }) {
     setRows((rs) => tidy(rs, v));
   };
 
+  // The form stays mounted between steps so nothing typed is lost; no step given shows everything.
+  const show = (s: GameStep) => step === undefined || step === s;
   return (
     <View style={{ gap: 12 }}>
+      {show("setup") && (
+        <>
       <Heading text="Setup" />
       <Select label="Map" value={map} options={MAPS.map(([value, label]) => ({ value, label }))} onChange={setMap} />
       <Select label="Deck" value={deck} options={DECKS.map(([value, label]) => ({ value, label }))} onChange={setDeck} />
@@ -106,6 +110,10 @@ function RootForm({ onChange }: { onChange: (v: Value) => void }) {
       {/* Like radio buttons: one is always ticked, and ticking one unticks the other. */}
       <Checkbox label="30 Points" checked={!dominance} onChange={(on) => on && toggleDominance(false)} />
       <Checkbox label="Dominance" checked={dominance} onChange={(on) => on && toggleDominance(true)} />
+        </>
+      )}
+      {show("players") && (
+        <>
       <Heading text="Players" />
       {rows.map((r, i) => (
         <View key={i} style={{ gap: 8, borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12 }}>
@@ -136,7 +144,9 @@ function RootForm({ onChange }: { onChange: (v: Value) => void }) {
         </View>
       ))}
       <Button secondary title="Add player" onPress={() => setRows((rs) => [...rs, { name: "", faction: freeFaction(rs), score: "", winner: false, partner: null }])} />
-      <Message text={error} />
+        </>
+      )}
+      {(show("players") || step === "save") && <Message text={error} />}
     </View>
   );
 }
