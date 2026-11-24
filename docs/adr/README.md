@@ -19,3 +19,5 @@ MADR-style, one file per decision, numbered `NNNN-slug.md`. Never edit an accept
 | [0013](0013-ci-via-moon-template.md) | CI via moon template | accepted |
 | [0014](0014-supabase-auth.md) | Supabase Auth for sign-in | accepted |
 | [0015](0015-tilt-for-local-dev.md) | Tilt for local dev | accepted |
+| [0016](0016-session-results-jsonb-per-game-crates.md) | Session Results as JSONB, one crate per Game | accepted |
+| [0017](0017-game-data-in-json-files.md) | Game data in a JSON file per Game crate | accepted |

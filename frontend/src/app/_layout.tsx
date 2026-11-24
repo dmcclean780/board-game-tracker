@@ -24,6 +24,8 @@ function Routes() {
       </Stack.Protected>
       <Stack.Protected guard={!!session && !scheduled}>
         <Stack.Screen name="index" />
+        <Stack.Screen name="sessions/new" />
+        <Stack.Screen name="sessions/[id]" />
       </Stack.Protected>
       <Stack.Protected guard={!!session && scheduled}>
         <Stack.Screen name="restore" />

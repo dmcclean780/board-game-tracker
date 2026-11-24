@@ -1,0 +1,129 @@
+use crate::auth::{AppState, AuthUser};
+use axum::{extract::{Path, State}, http::StatusCode, Json};
+use bgt_game_root::Root;
+use bgt_games::{check_session, data, Game};
+use chrono::{DateTime, NaiveDate, Utc};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use sqlx::FromRow;
+use utoipa::ToSchema;
+use uuid::Uuid;
+
+#[derive(Serialize, ToSchema)]
+pub struct GameInfo {
+    pub id: &'static str,
+    pub name: &'static str,
+}
+
+/// Adding a Game: write its crate, then add it here and in `check`.
+fn games() -> Vec<GameInfo> {
+    vec![GameInfo { id: Root::ID, name: Root::NAME }]
+}
+
+fn check(game: &str, players: &[String], result: &Value) -> Result<(), String> {
+    match game {
+        Root::ID => check_session::<Root>(players, result),
+        _ => Err(format!("unknown game: {game}")),
+    }
+}
+
+#[derive(Serialize, FromRow, ToSchema)]
+pub struct Session {
+    pub id: Uuid,
+    pub game: String,
+    pub played_on: NaiveDate,
+    pub notes: Option<String>,
+    pub duration_minutes: Option<i32>,
+    pub players: Vec<String>,
+    /// The Game's own Result format; see the Game's business rules.
+    pub result: Value,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct NewSession {
+    pub game: String,
+    /// Defaults to today.
+    pub played_on: Option<NaiveDate>,
+    pub notes: Option<String>,
+    pub duration_minutes: Option<i32>,
+    pub players: Vec<String>,
+    pub result: Value,
+}
+
+const COLUMNS: &str = "id, game, played_on, notes, duration_minutes, players, result, created_at";
+const ERR: StatusCode = StatusCode::INTERNAL_SERVER_ERROR;
+
+/// The Games a Session can be recorded for.
+#[utoipa::path(get, path = "/games", responses((status = 200, body = Vec<GameInfo>), (status = 401)))]
+pub async fn list_games(_: AuthUser) -> Json<Vec<GameInfo>> {
+    Json(games())
+}
+
+/// A Game's option lists and rule numbers (its data file), for building the Session form.
+#[utoipa::path(get, path = "/games/{id}", params(("id" = String, Path)), responses((status = 200, body = Object), (status = 401), (status = 404)))]
+pub async fn get_game(_: AuthUser, Path(id): Path<String>) -> Result<Json<Value>, StatusCode> {
+    match id.as_str() {
+        Root::ID => Ok(Json(data::<Root>())),
+        _ => Err(StatusCode::NOT_FOUND),
+    }
+}
+
+/// Record a Session; the Result is checked against the Game's rules.
+#[utoipa::path(post, path = "/sessions", request_body = NewSession, responses((status = 201, body = Session), (status = 401), (status = 422, body = String)))]
+pub async fn create_session(State(s): State<AppState>, u: AuthUser, Json(n): Json<NewSession>) -> Result<(StatusCode, Json<Session>), (StatusCode, String)> {
+    let bad = |m: &str| (StatusCode::UNPROCESSABLE_ENTITY, m.to_owned());
+    if n.duration_minutes.is_some_and(|d| d <= 0) {
+        return Err(bad("duration must be positive"));
+    }
+    check(&n.game, &n.players, &n.result).map_err(|m| bad(&m))?;
+    let row = sqlx::query_as(&format!(
+        "INSERT INTO sessions (owner_id, game, played_on, notes, duration_minutes, players, result)
+         VALUES ($1, $2, COALESCE($3, CURRENT_DATE), $4, $5, $6, $7) RETURNING {COLUMNS}"
+    ))
+    .bind(u.id)
+    .bind(&n.game)
+    .bind(n.played_on)
+    .bind(n.notes.filter(|t| !t.trim().is_empty()))
+    .bind(n.duration_minutes)
+    .bind(&n.players)
+    .bind(&n.result)
+    .fetch_one(&s.db)
+    .await
+    .map_err(|_| (ERR, String::new()))?;
+    Ok((StatusCode::CREATED, Json(row)))
+}
+
+/// The signed-in User's Sessions, newest play date first.
+#[utoipa::path(get, path = "/sessions", responses((status = 200, body = Vec<Session>), (status = 401)))]
+pub async fn list_sessions(State(s): State<AppState>, u: AuthUser) -> Result<Json<Vec<Session>>, StatusCode> {
+    sqlx::query_as(&format!("SELECT {COLUMNS} FROM sessions WHERE owner_id = $1 ORDER BY played_on DESC, created_at DESC"))
+        .bind(u.id)
+        .fetch_all(&s.db)
+        .await
+        .map(Json)
+        .map_err(|_| ERR)
+}
+
+/// One Session; 404 if it is not the signed-in User's.
+#[utoipa::path(get, path = "/sessions/{id}", params(("id" = Uuid, Path)), responses((status = 200, body = Session), (status = 401), (status = 404)))]
+pub async fn get_session(State(s): State<AppState>, u: AuthUser, Path(id): Path<Uuid>) -> Result<Json<Session>, StatusCode> {
+    sqlx::query_as(&format!("SELECT {COLUMNS} FROM sessions WHERE id = $1 AND owner_id = $2"))
+        .bind(id)
+        .bind(u.id)
+        .fetch_optional(&s.db)
+        .await
+        .map_err(|_| ERR)?
+        .map(Json)
+        .ok_or(StatusCode::NOT_FOUND)
+}
+
+/// Delete a Session; 404 if it is not the signed-in User's.
+#[utoipa::path(delete, path = "/sessions/{id}", params(("id" = Uuid, Path)), responses((status = 204), (status = 401), (status = 404)))]
+pub async fn delete_session(State(s): State<AppState>, u: AuthUser, Path(id): Path<Uuid>) -> StatusCode {
+    match sqlx::query("DELETE FROM sessions WHERE id = $1 AND owner_id = $2").bind(id).bind(u.id).execute(&s.db).await {
+        Ok(r) if r.rows_affected() == 1 => StatusCode::NO_CONTENT,
+        Ok(_) => StatusCode::NOT_FOUND,
+        Err(_) => ERR,
+    }
+}

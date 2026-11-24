@@ -2,7 +2,7 @@ language: rust
 tasks:
   # Plain tasks are for local use; the *-ci variants publish JUnit + lcov under reports/.
   test:
-    command: cargo test --lib
+    command: cargo test --workspace --lib
     options:
       runInCI: false
   dev:
@@ -13,7 +13,7 @@ tasks:
     options:
       runInCI: false
   test-ci:
-    script: mkdir -p reports/unit && cargo llvm-cov nextest --lib --lcov --output-path reports/unit/lcov.info
+    script: mkdir -p reports/unit && cargo llvm-cov nextest --workspace --lib --lcov --output-path reports/unit/lcov.info
     env:
       NEXTEST_PROFILE: unit
     outputs: [reports/unit, reports/nextest/unit]

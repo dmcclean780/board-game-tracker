@@ -4,6 +4,7 @@ use tower_http::cors::CorsLayer;
 use utoipa::{OpenApi, ToSchema};
 
 pub mod auth;
+pub mod sessions;
 pub mod users;
 
 pub use auth::{AppState, Auth};
@@ -14,7 +15,7 @@ pub struct Health {
 }
 
 #[derive(OpenApi)]
-#[openapi(paths(health, users::me, users::delete_me, users::restore_me), components(schemas(Health, users::Me)))]
+#[openapi(paths(health, users::me, users::delete_me, users::restore_me, sessions::list_games, sessions::get_game, sessions::create_session, sessions::list_sessions, sessions::get_session, sessions::delete_session), components(schemas(Health, users::Me, sessions::GameInfo, sessions::Session, sessions::NewSession)))]
 pub struct ApiDoc;
 
 /// Liveness plus database connectivity check.
@@ -34,6 +35,10 @@ pub fn app(state: AppState) -> Router {
         .route("/openapi.json", get(openapi))
         .route("/me", get(users::me).delete(users::delete_me))
         .route("/me/restore", post(users::restore_me))
+        .route("/games", get(sessions::list_games))
+        .route("/games/{id}", get(sessions::get_game))
+        .route("/sessions", get(sessions::list_sessions).post(sessions::create_session))
+        .route("/sessions/{id}", get(sessions::get_session).delete(sessions::delete_session))
         // shortcut: any origin is fine for bearer-token auth; restrict to the app's origin once deployment (ADR 0009) is decided.
         .layer(CorsLayer::permissive())
         .with_state(state)

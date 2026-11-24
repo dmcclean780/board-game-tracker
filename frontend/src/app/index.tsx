@@ -1,11 +1,24 @@
-import { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { Pressable, Text } from "react-native";
 import { api, auth, useAuth } from "../auth";
 import { Button, Message, Screen } from "../components/ui";
+import { games, Session } from "../games";
 
 export default function Home() {
   const { session, me } = useAuth();
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessions, setSessions] = useState<Session[] | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      api("/sessions", session!.access_token)
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then(setSessions)
+        .catch(() => setError("Could not load your sessions."));
+    }, [session?.access_token]),
+  );
 
   async function deleteAccount() {
     const res = await api("/me", session!.access_token, { method: "DELETE" });
@@ -15,7 +28,13 @@ export default function Home() {
 
   return (
     <Screen title={`Hi, ${me?.display_name}`}>
-      <Message text="No games yet." />
+      <Button title="Record session" onPress={() => router.push("/sessions/new")} />
+      {sessions?.length === 0 && <Message text="No sessions yet." />}
+      {sessions?.map((x) => (
+        <Pressable key={x.id} accessibilityRole="link" onPress={() => router.push(`/sessions/${x.id}`)}>
+          <Text>{x.played_on} · {games[x.game]?.name ?? x.game} · {games[x.game]?.summary(x)}</Text>
+        </Pressable>
+      ))}
       <Button secondary title="Sign out" onPress={() => auth.signOut()} />
       {confirming ? (
         <>
