@@ -1,12 +1,14 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { api, useAuth } from "../../auth";
-import { Message, Screen } from "../../components/ui";
+import { Message, Screen, Text } from "../../components/ui";
+import { useTheme } from "../../theme";
 import { games, Session } from "../../games";
 
 export default function Results() {
   const { session } = useAuth();
+  const { c } = useTheme();
   const [error, setError] = useState<string | null>(null);
   const [sessions, setSessions] = useState<Session[] | null>(null);
 
@@ -30,14 +32,14 @@ export default function Results() {
         ))}
         <Message error text={error} />
       </Screen>
-      <Pressable accessibilityRole="button" aria-label="Record session" onPress={() => router.push("/sessions/new")} style={s.fab}>
-        <Text style={s.plus}>+</Text>
+      <Pressable accessibilityRole="button" aria-label="Record session" onPress={() => router.push("/sessions/new")} style={[s.fab, { backgroundColor: c.primary }]}>
+        <Text style={[s.plus, { color: c.onPrimary }]}>+</Text>
       </Pressable>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  fab: { position: "absolute", right: 16, bottom: 16, width: 56, height: 56, borderRadius: 28, backgroundColor: "#1a56db", alignItems: "center", justifyContent: "center" },
-  plus: { color: "#fff", fontSize: 32, lineHeight: 36 },
+  fab: { position: "absolute", right: 16, bottom: 16, width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
+  plus: { fontSize: 32, lineHeight: 36 },
 });

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
-import Account from "../src/app/(app)/account";
+import Account from "../src/app/(app)/settings/account";
 import { api, auth, useAuth } from "../src/auth";
 
 jest.mock("../src/auth", () => ({

@@ -52,4 +52,4 @@ Linking a User to a Player; immediate hard delete; a way to trigger the purge ma
 
 ## Code
 
-`backend/src/users.rs`, `backend/src/main.rs` (purge loop), `db/migrations/0002_users.sql`, `frontend/src/app/(app)/account.tsx`, `frontend/src/app/restore.tsx`.
+`backend/src/users.rs`, `backend/src/main.rs` (purge loop), `db/migrations/0002_users.sql`, `frontend/src/app/(app)/settings/account.tsx`, `frontend/src/app/restore.tsx`.

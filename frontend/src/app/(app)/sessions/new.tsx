@@ -1,8 +1,7 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text } from "react-native";
 import { api, useAuth } from "../../../auth";
-import { Button, DateField, Field, Heading, Message, Screen, Select } from "../../../components/ui";
+import { Button, DateField, Field, Heading, Message, Screen, Select, Text } from "../../../components/ui";
 import { games, GameStep } from "../../../games";
 
 const STEPS = ["Session", "Setup", "Players", "Save"] as const;

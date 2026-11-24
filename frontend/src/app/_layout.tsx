@@ -1,8 +1,10 @@
 import { Stack } from "expo-router";
 import { Button, Message, Screen } from "../components/ui";
 import { auth, AuthProvider, useAuth } from "../auth";
+import { ThemeProvider, useTheme } from "../theme";
 
 function Routes() {
+  const { c } = useTheme();
   const { session, me, meError } = useAuth();
   if (session === undefined) return null;
   if (session && meError) {
@@ -16,7 +18,7 @@ function Routes() {
   if (session && !me) return null; // waiting for /me
   const scheduled = !!me?.deletion_scheduled_for;
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }}>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="login" />
         <Stack.Screen name="sign-up" />
@@ -36,8 +38,10 @@ function Routes() {
 
 export default function Layout() {
   return (
-    <AuthProvider>
-      <Routes />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Routes />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

@@ -1,21 +1,32 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
-import { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useMemo, useState } from "react";
+import { Pressable, StyleSheet, View } from "react-native";
 import { auth, useAuth } from "../auth";
+import { Colors, useTheme } from "../theme";
+import { Text } from "./ui";
 
 export const SECTIONS = [
   { path: "/games", label: "Games", icon: "dice-outline" },
   { path: "/results", label: "Results", icon: "trophy-outline" },
   { path: "/groups", label: "Groups", icon: "people-outline" },
-  { path: "/account", label: "Account", icon: "person-circle-outline" },
+  { path: "/settings", label: "Settings", icon: "settings-outline" },
 ] as const;
+
+/** Whether `path` is the section's screen or one of its sub pages. */
+export const inSection = (path: string, x: { path: string }) => path === x.path || path.startsWith(x.path + "/");
+
+function useS() {
+  const { c } = useTheme();
+  return useMemo(() => styles(c), [c]);
+}
 
 /** Top bar: optional back arrow and the screen title on the left, the user menu on the right. */
 export function Header({ title, back }: { title: string; back?: boolean }) {
+  const s = useS();
   const { me } = useAuth();
   const [open, setOpen] = useState(false);
-  const go = (path: "/account") => { setOpen(false); router.push(path); };
+  const go = (path: "/settings/account") => { setOpen(false); router.push(path); };
   return (
     <View style={s.header}>
       <View style={s.left}>
@@ -31,7 +42,7 @@ export function Header({ title, back }: { title: string; back?: boolean }) {
       </Pressable>
       {open && (
         <View style={s.menu}>
-          <Pressable accessibilityRole="link" onPress={() => go("/account")} style={s.item}><Text>Account</Text></Pressable>
+          <Pressable accessibilityRole="link" onPress={() => go("/settings/account")} style={s.item}><Text>Account</Text></Pressable>
           <Pressable accessibilityRole="button" onPress={() => auth.signOut()} style={s.item}><Text>Sign out</Text></Pressable>
         </View>
       )}
@@ -41,14 +52,16 @@ export function Header({ title, back }: { title: string; back?: boolean }) {
 
 /** Bottom bar with one button per section; the current one is highlighted. */
 export function Footer() {
+  const s = useS();
+  const { c } = useTheme();
   const path = usePathname();
   return (
     <View style={s.footer}>
       {SECTIONS.map((x) => {
-        const on = path === x.path;
+        const on = inSection(path, x);
         return (
           <Pressable key={x.path} accessibilityRole="link" accessibilityState={{ selected: on }} aria-label={x.label} onPress={() => router.replace(x.path)} style={s.tab}>
-            <Ionicons name={x.icon} size={22} color={on ? "#1a56db" : "#666"} />
+            <Ionicons name={x.icon} size={22} color={on ? c.primary : c.muted} />
             <Text style={[s.tabText, on && s.tabOn]}>{x.label}</Text>
           </Pressable>
         );
@@ -57,16 +70,16 @@ export function Footer() {
   );
 }
 
-const s = StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: "#fff", borderBottomWidth: 1, borderBottomColor: "#ddd", zIndex: 10 },
+const styles = (c: Colors) => StyleSheet.create({
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: c.bg, borderBottomWidth: 1, borderBottomColor: c.line, zIndex: 10 },
   left: { flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 1 },
   back: { fontSize: 22 },
   title: { fontSize: 20, fontWeight: "600" },
-  user: { fontSize: 16, color: "#1a56db" },
-  menu: { position: "absolute", top: "100%", right: 8, backgroundColor: "#fff", borderWidth: 1, borderColor: "#ddd", borderRadius: 6, minWidth: 140 },
+  user: { fontSize: 16, color: c.primary },
+  menu: { position: "absolute", top: "100%", right: 8, backgroundColor: c.bg, borderWidth: 1, borderColor: c.line, borderRadius: 6, minWidth: 140 },
   item: { padding: 12 },
-  footer: { flexDirection: "row", backgroundColor: "#fff", borderTopWidth: 1, borderTopColor: "#ddd" },
+  footer: { flexDirection: "row", backgroundColor: c.bg, borderTopWidth: 1, borderTopColor: c.line },
   tab: { flex: 1, alignItems: "center", paddingVertical: 8, gap: 2 },
-  tabText: { fontSize: 12, color: "#666" },
-  tabOn: { color: "#1a56db", fontWeight: "600" },
+  tabText: { fontSize: 12, color: c.muted },
+  tabOn: { color: c.primary, fontWeight: "600" },
 });

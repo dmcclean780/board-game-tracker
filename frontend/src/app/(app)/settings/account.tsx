@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { api, appOrigin, auth, useAuth } from "../../auth";
-import { Button, Field, Heading, Message, Screen } from "../../components/ui";
+import { api, appOrigin, auth, useAuth } from "../../../auth";
+import { Button, Field, Heading, Message, Screen } from "../../../components/ui";
 
 export default function Account() {
   const { session, me, refreshMe } = useAuth();

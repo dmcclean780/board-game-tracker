@@ -1,8 +1,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
-import { Text } from "react-native";
 import { api, useAuth } from "../../../auth";
-import { Button, Message, Screen } from "../../../components/ui";
+import { Button, Message, Screen, Text } from "../../../components/ui";
 import { games, Session } from "../../../games";
 
 export default function SessionDetail() {

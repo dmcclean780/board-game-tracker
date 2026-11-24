@@ -83,7 +83,7 @@ test("reset a forgotten password", async ({ page }) => {
 test("delete the account, then restore it on next sign-in", async ({ page }) => {
   const email = uniqueEmail();
   await signUpAndVerify(page, email);
-  await page.getByRole("link", { name: "Account" }).click();
+  await page.getByRole("link", { name: "Settings" }).click();
   await page.getByRole("button", { name: "Delete account" }).click();
   await page.getByRole("button", { name: "Confirm delete" }).click();
   await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
@@ -95,11 +95,21 @@ test("delete the account, then restore it on next sign-in", async ({ page }) => 
 
 test("change the display name on the account screen", async ({ page }) => {
   await signUpAndVerify(page, uniqueEmail());
-  await page.getByRole("link", { name: "Account" }).click();
+  await page.getByRole("link", { name: "Settings" }).click();
   await page.getByLabel("Display name").fill("Grace");
   await page.getByRole("button", { name: "Save display name" }).click();
   await expect(page.getByText("Display name saved.")).toBeVisible();
   await expect(page.getByRole("button", { name: "User menu" })).toContainText("Grace");
+});
+
+test("the theme choice on the appearance tab is kept after reload", async ({ page }) => {
+  await signUpAndVerify(page, uniqueEmail());
+  await page.getByRole("link", { name: "Settings" }).click();
+  await page.getByRole("tab", { name: "Appearance" }).click();
+  await page.getByRole("radio", { name: "Dark" }).click();
+  await expect(page.getByRole("radio", { name: "Dark" })).toBeChecked();
+  await page.reload();
+  await expect(page.getByRole("radio", { name: "Dark" })).toBeChecked();
 });
 
 const next = (page: Page) => page.getByRole("button", { name: "Next" }).click();
