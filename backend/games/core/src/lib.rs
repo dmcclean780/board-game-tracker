@@ -6,10 +6,17 @@ use std::collections::HashSet;
 pub trait Game {
     const ID: &'static str;
     const NAME: &'static str;
+    /// The Game's option lists and rule numbers as JSON (its `data.json`); served to the app as is.
+    const DATA: &'static str;
     /// The Game's own Result format; deserializing into it is the first check.
     type Result: DeserializeOwned;
     /// The Game's rules. `players` are already known to be non-blank and unique.
     fn check(players: &[String], result: &Self::Result) -> Result<(), String>;
+}
+
+/// The Game's data file, parsed.
+pub fn data<G: Game>() -> Value {
+    serde_json::from_str(G::DATA).unwrap_or_else(|e| panic!("{} data is not valid JSON: {e}", G::NAME))
 }
 
 /// Checks that apply to every Game, then the Game's own rules.
@@ -36,6 +43,7 @@ mod tests {
     impl Game for Pass {
         const ID: &'static str = "pass";
         const NAME: &'static str = "Pass";
+        const DATA: &'static str = r#"{"x":1}"#;
         type Result = u32;
         fn check(_: &[String], _: &u32) -> Result<(), String> {
             Ok(())
@@ -44,6 +52,11 @@ mod tests {
 
     fn names(n: &[&str]) -> Vec<String> {
         n.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn serves_the_games_data() {
+        assert_eq!(data::<Pass>(), json!({ "x": 1 }));
     }
 
     #[test]

@@ -1,7 +1,7 @@
 use crate::auth::{AppState, AuthUser};
 use axum::{extract::{Path, State}, http::StatusCode, Json};
 use bgt_game_root::Root;
-use bgt_games::{check_session, Game};
+use bgt_games::{check_session, data, Game};
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -58,6 +58,15 @@ const ERR: StatusCode = StatusCode::INTERNAL_SERVER_ERROR;
 #[utoipa::path(get, path = "/games", responses((status = 200, body = Vec<GameInfo>), (status = 401)))]
 pub async fn list_games(_: AuthUser) -> Json<Vec<GameInfo>> {
     Json(games())
+}
+
+/// A Game's option lists and rule numbers (its data file), for building the Session form.
+#[utoipa::path(get, path = "/games/{id}", params(("id" = String, Path)), responses((status = 200, body = Object), (status = 401), (status = 404)))]
+pub async fn get_game(_: AuthUser, Path(id): Path<String>) -> Result<Json<Value>, StatusCode> {
+    match id.as_str() {
+        Root::ID => Ok(Json(data::<Root>())),
+        _ => Err(StatusCode::NOT_FOUND),
+    }
 }
 
 /// Record a Session; the Result is checked against the Game's rules.

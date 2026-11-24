@@ -2,83 +2,79 @@
 use bgt_games::Game;
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashSet};
+use std::sync::OnceLock;
 
-#[derive(Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
-#[serde(rename_all = "snake_case")]
-pub enum Faction {
-    MarquiseDeCat,
-    EyrieDynasties,
-    WoodlandAlliance,
-    Vagabond,
-    RiverfolkCompany,
-    LizardCult,
-    UndergroundDuchy,
-    CorvidConspiracy,
-    KeepersInIron,
-    LordOfTheHundreds,
-    LilypadDiaspora,
-    TwilightCouncil,
-    KnavesOfTheDeepwood,
+/// The Game's option lists and rules, edited in `data.json` (see backend/docs/README.md).
+const DATA_JSON: &str = include_str!("../data.json");
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Entry {
+    pub id: String,
+    pub label: String,
+    /// Which box it comes from; stored for later use.
+    #[serde(default)]
+    pub expansion: String,
+    /// Hidden from new Sessions but still understood in old ones.
+    #[serde(default)]
+    pub retired: bool,
+    /// More than one Player may use it (Vagabond).
+    #[serde(default)]
+    pub shareable: bool,
+    /// May form a coalition with a Player whose faction cannot.
+    #[serde(default)]
+    pub coalition: bool,
 }
 
-#[derive(Deserialize, PartialEq, Eq, Debug)]
-#[serde(rename_all = "snake_case")]
-pub enum Victory {
-    Points,
-    Dominance,
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Rules {
+    pub points_to_win: i32,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "snake_case")]
-pub enum Map {
-    Autumn,
-    Winter,
-    Lake,
-    Mountain,
-    Marsh,
-    Gorge,
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RootData {
+    pub rules: Rules,
+    pub victories: Vec<Entry>,
+    pub factions: Vec<Entry>,
+    pub maps: Vec<Entry>,
+    pub decks: Vec<Entry>,
+    pub landmarks: Vec<Entry>,
 }
 
-#[derive(Deserialize, Debug)]
-#[serde(rename_all = "snake_case")]
-pub enum Deck {
-    Standard,
-    ExilesAndPartisans,
-    SquiresAndDisciples,
+fn data() -> &'static RootData {
+    static DATA: OnceLock<RootData> = OnceLock::new();
+    DATA.get_or_init(|| serde_json::from_str(DATA_JSON).expect("games/root/data.json is invalid"))
 }
 
-#[derive(Deserialize, Clone, Copy, PartialEq, Eq, Hash, Debug)]
-#[serde(rename_all = "snake_case")]
-pub enum Landmark {
-    BlackMarket,
-    ElderTreetop,
-    LegendaryForge,
-    LostCity,
-    Mousehold,
-    Foxburrow,
-    Rabbittown,
-    TheFerry,
-    TheTower,
+/// The victory ids the rules below depend on.
+const POINTS: &str = "points";
+const DOMINANCE: &str = "dominance";
+
+/// An id that exists in the list and is not retired.
+fn find<'a>(list: &'a [Entry], kind: &str, id: &str) -> Result<&'a Entry, String> {
+    list.iter().find(|e| e.id == id && !e.retired).ok_or_else(|| format!("unknown {kind}: {id}"))
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RootPlayer {
-    pub faction: Faction,
+    pub faction: String,
     pub score: i32,
     pub winner: bool,
-    /// The Vagabond's coalition partner.
+    /// The coalition partner of a faction that can form one.
     pub partner: Option<String>,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct RootResult {
-    pub map: Map,
-    pub deck: Deck,
+    pub map: String,
+    pub deck: String,
     #[serde(default)]
-    pub landmarks: Vec<Landmark>,
-    pub victory: Victory,
+    pub landmarks: Vec<String>,
+    pub victory: String,
     /// Keyed by player name; must match the session's players.
     pub players: BTreeMap<String, RootPlayer>,
 }
@@ -88,9 +84,17 @@ pub struct Root;
 impl Game for Root {
     const ID: &'static str = "root";
     const NAME: &'static str = "Root";
+    const DATA: &'static str = DATA_JSON;
     type Result = RootResult;
 
     fn check(players: &[String], r: &RootResult) -> Result<(), String> {
+        let d = data();
+        find(&d.maps, "map", &r.map)?;
+        find(&d.decks, "deck", &r.deck)?;
+        let victory = &find(&d.victories, "victory", &r.victory)?.id;
+        for l in &r.landmarks {
+            find(&d.landmarks, "landmark", l)?;
+        }
         if r.landmarks.iter().collect::<HashSet<_>>().len() != r.landmarks.len() {
             return Err("choose each landmark at most once".into());
         }
@@ -103,19 +107,22 @@ impl Game for Root {
             if p.score < 0 {
                 return Err("scores must not be negative".into());
             }
-            if p.faction != Faction::Vagabond && !seen.insert(p.faction) {
-                return Err("only Vagabonds may share a faction".into());
+            let f = find(&d.factions, "faction", &p.faction)?;
+            if !f.shareable && !seen.insert(&f.id) {
+                return Err(format!("only one player can be the {}", f.label));
             }
         }
-        // A Vagabond with a partner wins or loses together with that partner.
+        // Every faction was found above, so a missing one here cannot happen.
+        let can_coalition = |p: &RootPlayer| d.factions.iter().any(|f| f.id == p.faction && f.coalition);
+        // A coalition faction with a partner wins or loses together with that partner.
         for (name, p) in &r.players {
             let Some(partner) = &p.partner else { continue };
-            if r.victory != Victory::Dominance {
+            if victory != DOMINANCE {
                 return Err(format!("{name}: a coalition needs a dominance victory"));
             }
             let q = r.players.get(partner).filter(|_| partner != name);
             match q {
-                Some(q) if p.faction == Faction::Vagabond && q.faction != Faction::Vagabond => {
+                Some(q) if can_coalition(p) && !can_coalition(q) => {
                     if p.winner != q.winner {
                         return Err(format!("{name} and coalition partner {partner} must both win or both lose"));
                     }
@@ -123,12 +130,12 @@ impl Game for Root {
                 _ => return Err(format!("{name}: a coalition needs a Vagabond and another player who is not a Vagabond")),
             }
         }
-        let leaders: Vec<&RootPlayer> = r.players.values().filter(|p| p.winner && !(p.faction == Faction::Vagabond && p.partner.is_some())).collect();
+        let leaders: Vec<&RootPlayer> = r.players.values().filter(|p| p.winner && !(can_coalition(p) && p.partner.is_some())).collect();
         if leaders.len() != 1 {
             return Err("exactly one player must win, plus any Vagabonds in a coalition with them".into());
         }
-        if r.victory == Victory::Points && leaders[0].score < 30 {
-            return Err("a points victory needs at least 30 points".into());
+        if victory == POINTS && leaders[0].score < d.rules.points_to_win {
+            return Err(format!("a points victory needs at least {} points", d.rules.points_to_win));
         }
         Ok(())
     }
@@ -151,6 +158,34 @@ mod tests {
 
     fn p(faction: &str, score: i32, winner: bool) -> Value {
         json!({ "faction": faction, "score": score, "winner": winner })
+    }
+
+    #[test]
+    fn data_file_is_well_formed() {
+        let d = data();
+        let lists = [("victories", &d.victories), ("factions", &d.factions), ("maps", &d.maps), ("decks", &d.decks), ("landmarks", &d.landmarks)];
+        for (name, list) in lists {
+            let ids: HashSet<&String> = list.iter().map(|e| &e.id).collect();
+            assert_eq!(ids.len(), list.len(), "{name}: ids must be unique");
+            for e in list {
+                assert!(!e.id.is_empty() && e.id.chars().all(|c| c.is_ascii_lowercase() || c == '_'), "{name}: bad id {}", e.id);
+                assert!(!e.label.trim().is_empty(), "{name}: {} needs a label", e.id);
+                if name != "victories" {
+                    assert!(!e.expansion.is_empty(), "{name}: {} needs an expansion", e.id);
+                }
+            }
+        }
+        assert!(d.maps.iter().any(|e| !e.retired) && d.decks.iter().any(|e| !e.retired));
+        assert!(d.factions.iter().any(|f| f.coalition && f.shareable), "the Vagabond rules need a coalition faction");
+        assert!(d.victories.iter().any(|v| v.id == POINTS) && d.victories.iter().any(|v| v.id == DOMINANCE));
+        assert!(d.rules.points_to_win > 0);
+    }
+
+    #[test]
+    fn retired_entries_are_rejected_for_new_sessions() {
+        let list = vec![Entry { id: "old".into(), label: "Old".into(), expansion: "base".into(), retired: true, shareable: false, coalition: false }];
+        assert_eq!(find(&list, "map", "old").err().unwrap(), "unknown map: old");
+        assert!(find(&list, "map", "new").is_err());
     }
 
     #[test]

@@ -177,6 +177,19 @@ async fn games_lists_root() {
 }
 
 #[tokio::test]
+async fn a_games_data_is_served_to_signed_in_users() {
+    let (pool, _node) = db().await;
+    let t = token(Uuid::new_v4(), "ada@x.com", None);
+    let (status, body) = call(&pool, "GET", "/games/root", Some(&t)).await;
+    assert_eq!(status, StatusCode::OK);
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["rules"]["points_to_win"], 30);
+    assert!(v["factions"].as_array().unwrap().iter().any(|f| f["id"] == "vagabond" && f["coalition"] == true));
+    assert_eq!(call(&pool, "GET", "/games/chess", Some(&t)).await.0, StatusCode::NOT_FOUND);
+    assert_eq!(call(&pool, "GET", "/games/root", None).await.0, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
 async fn record_list_view_and_delete_a_session() {
     let (pool, _node) = db().await;
     let t = token(Uuid::new_v4(), "ada@x.com", None);

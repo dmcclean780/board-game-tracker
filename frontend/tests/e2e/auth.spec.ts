@@ -112,7 +112,7 @@ test("record a Root session, view it and delete it", async ({ page }) => {
   await page.getByText(/· Root · Won by Ada/).click();
   await expect(page.getByText("Marsh map · Exiles and Partisans deck")).toBeVisible();
   await expect(page.getByText("Landmarks: Mousehold")).toBeVisible();
-  await expect(page.getByText("30 point victory")).toBeVisible();
+  await expect(page.getByText("30 Points victory")).toBeVisible();
   await expect(page.getByText("Close game")).toBeVisible();
   await page.getByRole("button", { name: "Delete session" }).click();
   await page.getByRole("button", { name: "Confirm delete" }).click();

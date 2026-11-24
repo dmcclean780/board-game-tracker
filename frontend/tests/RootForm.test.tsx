@@ -1,6 +1,15 @@
 import { fireEvent, render, screen } from "@testing-library/react-native";
 import { games } from "../src/games";
 
+// The real data file, so these tests fail if the form and the file drift apart.
+const realData = require("../../backend/games/root/data.json");
+let mockData: unknown = realData;
+jest.mock("../src/auth", () => ({ useAuth: jest.fn(), api: jest.fn() }));
+jest.mock("../src/games/data", () => ({ ...jest.requireActual("../src/games/data"), useGameData: () => mockData }));
+beforeEach(() => {
+  mockData = realData;
+});
+
 const Form = games.root.Form;
 const pick = (label: string, value: string) => fireEvent(screen.getByLabelText(label), "valueChange", value);
 const type = (label: string, text: string) => fireEvent.changeText(screen.getByLabelText(label), text);
@@ -166,4 +175,31 @@ test("shows one step at a time and keeps what was typed between steps", async ()
   expect(screen.queryByLabelText("Map")).toBeNull();
   await rerender(<Form onChange={onChange} step="players" />);
   expect(screen.getByLabelText("Player 1 name").props.value).toBe("Ada");
+});
+
+test("waits for the game's data before showing the form", async () => {
+  mockData = null;
+  await render(<Form onChange={jest.fn()} />);
+  expect(screen.getByText("Loading Root options…")).toBeTruthy();
+  expect(screen.queryByLabelText("Map")).toBeNull();
+});
+
+test("options come from the data file: a new entry appears and a retired one does not", async () => {
+  mockData = { ...realData, landmarks: [...realData.landmarks.filter((l: { id: string }) => !["mousehold", "foxburrow"].includes(l.id)), { id: "moon_base", label: "Moon Base", expansion: "future" }, { id: "foxburrow", label: "Foxburrow", expansion: "homeland", retired: true }] };
+  await render(<Form onChange={jest.fn()} step="setup" />);
+  expect(screen.getByLabelText("Moon Base")).toBeTruthy();
+  expect(screen.queryByLabelText("Foxburrow")).toBeNull(); // retired
+  expect(screen.queryByLabelText("Mousehold")).toBeNull(); // removed
+});
+
+test("the points target and the faction flags come from the data", async () => {
+  mockData = { ...realData, rules: { points_to_win: 40 } };
+  const onChange = jest.fn();
+  await render(<Form onChange={onChange} />);
+  await names();
+  await fireEvent.press(screen.getByLabelText("Player 1 won"));
+  await type("Player 1 score", "35");
+  expect(screen.getByText(/A 40 point victory needs at least 40 points/)).toBeTruthy();
+  await type("Player 1 score", "40");
+  expect(last(onChange)).not.toBeNull();
 });

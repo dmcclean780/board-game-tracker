@@ -1,6 +1,6 @@
 # Sessions
 
-Status: implemented, web only. Decision: [ADR 0016](../adr/0016-session-results-jsonb-per-game-crates.md). Rules: [Root results](../business-rules/root-results.md). Terms: Game, Session, Player, Result ([glossary](../../GLOSSARY.md)).
+Status: implemented, web only. Decisions: [ADR 0016](../adr/0016-session-results-jsonb-per-game-crates.md), [ADR 0017](../adr/0017-game-data-in-json-files.md). Rules: [Root results](../business-rules/root-results.md). Terms: Game, Session, Player, Result ([glossary](../../GLOSSARY.md)).
 
 ## Purpose
 
@@ -12,6 +12,12 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
 
 - **SES-1** `GET /games` returns the Games that can be recorded, as `[{ id, name }]`; today `[{ "id": "root", "name": "Root" }]`.
   Tests: integration `games_lists_root`
+- **SES-17** `GET /games/{id}` returns the Game's data file as JSON (for Root: `rules`, `victories`, `factions`, `maps`, `decks`, `landmarks`), `404` for an unknown Game.
+  Tests: integration `a_games_data_is_served_to_signed_in_users`; unit `serves_the_games_data`, `data_file_is_well_formed`
+- **SES-18** The Root form builds its Map, Deck, Landmark, Faction and win-condition options from that data, hides entries marked `retired`, uses the data's `shareable` and `coalition` flags and `points_to_win`, and shows "Loading Root options…" until the data arrives. The Session screen labels ids from the data and shows an id as is when it is no longer in the data.
+  Tests: jest `options come from the data file: a new entry appears and a retired one does not`, `the points target and the faction flags come from the data`, `waits for the game's data before showing the form`
+- **SES-19** A new Session is rejected with `422` when its map, deck, victory, landmark or faction is not in the data file or is `retired`.
+  Tests: unit `map_deck_and_landmarks`, `retired_entries_are_rejected_for_new_sessions`
 - **SES-2** `POST /sessions` with `{ game, played_on?, notes?, duration_minutes?, players, result }` stores the Session for the caller and returns `201` with it.
   Tests: integration `record_list_view_and_delete_a_session`
 - **SES-3** `played_on` defaults to today when omitted.
@@ -30,7 +36,7 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
   Tests: jest `lists recorded sessions with their winners`, `greets the user and shows the empty state`; e2e `record a Root session, view it and delete it`
 - **SES-10** "Record session" opens a four-screen flow, shown as "Step n of 4", with "Next" and "Back" buttons ("Cancel" on the first): Session, Setup, Players, Save. Session has a Game dropdown (always shown, even with one Game), the play date (the browser's date input on web) and optional duration. Setup and Players belong to the Game. Save shows a summary, the optional notes and "Save session", which sends it and returns home; a `422` reason is shown as an error. Nothing typed is lost when moving between screens.
   Tests: e2e `record a Root session, view it and delete it`; jest `shows one step at a time and keeps what was typed between steps`
-- **SES-11** For Root, the Setup screen has a "Setup" section with a Map dropdown, a Deck dropdown (defaults Autumn and Standard) and Landmark checkboxes (any number), and a "Win condition" section with "30 Points" and "Dominance" checkboxes: one is always ticked, ticking one unticks the other, and "30 Points" is the default. The Players screen has one card per Player with a name, a "won" checkbox, a faction dropdown and a score, and a "Remove player" button on each card. A new Player starts on a faction no other Player holds. The options include the Exiles and Partisans deck and the Homeland expansion's factions, maps, deck and landmarks.
+- **SES-11** For Root, the Setup screen has a "Setup" section with a Map dropdown, a Deck dropdown (defaults Autumn and Standard) and Landmark checkboxes (any number), and a "Win condition" section with "30 Points" and "Dominance" checkboxes: one is always ticked, ticking one unticks the other, and "30 Points" is the default. The Players screen has one card per Player with a name, a "won" checkbox, a faction dropdown and a score, and a "Remove player" button on each card. A new Player starts on a faction no other Player holds. The options come from the Game's data file (SES-18).
   Tests: jest `reports players and a points Result once the form is valid`, `a dominance victory needs no points`, `reports the map, deck and any number of landmarks`, `30 Points and Dominance exclude each other, and one is always chosen`, `offers the Exiles and Partisans deck and the Homeland options`; e2e `record a Root session, view it and delete it`
 - **SES-15** Ticking one Player's "won" box clears everyone else's, so only one Player wins in their own right.
   Tests: jest `only one player can be marked as having won`; e2e `the form explains what is wrong and blocks going on until it is fixed`
@@ -61,4 +67,4 @@ Editing a Session; linking Players to Users and sharing Sessions; other Games; r
 
 ## Code
 
-`backend/src/sessions.rs`, `backend/games/core`, `backend/games/root`, `db/migrations/0003_sessions.sql`, `frontend/src/games/`, `frontend/src/app/index.tsx`, `frontend/src/app/sessions/`.
+`backend/src/sessions.rs`, `backend/games/core`, `backend/games/root` (rules in `src/lib.rs`, options in `data.json`), `db/migrations/0003_sessions.sql`, `frontend/src/games/`, `frontend/src/app/index.tsx`, `frontend/src/app/sessions/`.

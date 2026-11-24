@@ -5,9 +5,9 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 ## BR-ROOT-001 — Faction per Player
 
 - Status: active
-- Rule: Each Player has one faction, and no faction appears twice in a Session except Vagabond.
+- Rule: Each Player has one faction, and no faction appears twice in a Session unless it is marked `shareable` in the data file (only Vagabond).
 - Rationale: Every faction exists once in a box; two Vagabonds are possible with an expansion.
-- Enforced in: `backend/games/root/src/lib.rs`
+- Enforced in: `backend/games/root/src/lib.rs`, flags in `backend/games/root/data.json`
 - Tests: `duplicate_factions_only_for_vagabonds`
 
 ## BR-ROOT-002 — One winner plus coalition Vagabonds
@@ -21,7 +21,7 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 ## BR-ROOT-003 — Points victory needs 30
 
 - Status: active
-- Rule: In a Points victory the Player who wins in their own right has at least 30 points. A Dominance victory has no score condition.
+- Rule: In a Points victory the Player who wins in their own right has at least `rules.points_to_win` points (30 in `data.json`). A Dominance victory has no score condition.
 - Rationale: A dominance card ends the game at any score.
 - Enforced in: `backend/games/root/src/lib.rs`
 - Tests: `points_victory_needs_30`, `dominance_victory_ignores_score`
@@ -29,7 +29,7 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 ## BR-ROOT-004 — Coalition partners
 
 - Status: active
-- Rule: A Coalition only exists in a Dominance victory. Only a Vagabond has a Coalition partner. The partner is another Player in the Session who is not a Vagabond, and the Vagabond wins exactly when the partner wins. Two Vagabonds may choose the same partner.
+- Rule: A Coalition only exists in a Dominance victory. Only a faction marked `coalition` in the data file (Vagabond) has a Coalition partner. The partner is another Player in the Session whose faction is not marked `coalition`, and the Vagabond wins exactly when the partner wins. Two Vagabonds may choose the same partner.
 - Rationale: A Vagabond cannot win alone by Coalition and shares the partner's victory.
 - Enforced in: `backend/games/root/src/lib.rs`
 - Tests: `bad_coalitions`, `coalition_needs_dominance`, `two_vagabonds_may_share_a_coalition_partner`
@@ -45,7 +45,7 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 ## BR-ROOT-006 — Map, deck and landmarks
 
 - Status: active
-- Rule: Every Root Result names one Map (Autumn, Winter, Lake, Mountain, Marsh or Gorge) and one Deck (Standard, Exiles and Partisans or Squires and Disciples), and lists any number of different Landmarks (Black Market, Elder Treetop, Legendary Forge, Lost City, Mousehold, Foxburrow, Rabbittown, The Ferry or The Tower). The Faction list includes the Homeland factions Lilypad Diaspora, Twilight Council and Knaves of the Deepwood.
+- Rule: Every Root Result names one Map, one Deck and one Victory type, and lists any number of different Landmarks, and each must be an entry in `backend/games/root/data.json` that is not `retired`. That file is the list of Maps, Decks, Landmarks and Factions; edit it there.
 - Rationale: These are the setup choices that change how a game plays; a Landmark is either in play or not, and cannot be in play twice.
-- Enforced in: `backend/games/root/src/lib.rs`
-- Tests: `map_deck_and_landmarks`, `homeland_factions`
+- Enforced in: `backend/games/root/src/lib.rs`, `backend/games/root/data.json`
+- Tests: `map_deck_and_landmarks`, `homeland_factions`, `data_file_is_well_formed`, `retired_entries_are_rejected_for_new_sessions`

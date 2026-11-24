@@ -1,0 +1,46 @@
+{
+  "rules": {"points_to_win": 30},
+  "victories": [
+    {"id": "points", "label": "30 Points"},
+    {"id": "dominance", "label": "Dominance"}
+  ],
+  "factions": [
+    {"id": "marquise_de_cat", "label": "Marquise de Cat", "expansion": "base"},
+    {"id": "eyrie_dynasties", "label": "Eyrie Dynasties", "expansion": "base"},
+    {"id": "woodland_alliance", "label": "Woodland Alliance", "expansion": "base"},
+    {"id": "vagabond", "label": "Vagabond", "expansion": "base", "shareable": true, "coalition": true},
+    {"id": "riverfolk_company", "label": "Riverfolk Company", "expansion": "riverfolk"},
+    {"id": "lizard_cult", "label": "Lizard Cult", "expansion": "riverfolk"},
+    {"id": "underground_duchy", "label": "Underground Duchy", "expansion": "underworld"},
+    {"id": "corvid_conspiracy", "label": "Corvid Conspiracy", "expansion": "underworld"},
+    {"id": "keepers_in_iron", "label": "Keepers in Iron", "expansion": "marauder"},
+    {"id": "lord_of_the_hundreds", "label": "Lord of the Hundreds", "expansion": "marauder"},
+    {"id": "lilypad_diaspora", "label": "Lilypad Diaspora", "expansion": "homeland"},
+    {"id": "twilight_council", "label": "Twilight Council", "expansion": "homeland"},
+    {"id": "knaves_of_the_deepwood", "label": "Knaves of the Deepwood", "expansion": "homeland"}
+  ],
+  "maps": [
+    {"id": "autumn", "label": "Autumn", "expansion": "base"},
+    {"id": "winter", "label": "Winter", "expansion": "base"},
+    {"id": "lake", "label": "Lake", "expansion": "riverfolk"},
+    {"id": "mountain", "label": "Mountain", "expansion": "underworld"},
+    {"id": "marsh", "label": "Marsh", "expansion": "homeland"},
+    {"id": "gorge", "label": "Gorge", "expansion": "homeland"}
+  ],
+  "decks": [
+    {"id": "standard", "label": "Standard", "expansion": "base"},
+    {"id": "exiles_and_partisans", "label": "Exiles and Partisans", "expansion": "base"},
+    {"id": "squires_and_disciples", "label": "Squires and Disciples", "expansion": "homeland"}
+  ],
+  "landmarks": [
+    {"id": "black_market", "label": "Black Market", "expansion": "landmarks"},
+    {"id": "elder_treetop", "label": "Elder Treetop", "expansion": "landmarks"},
+    {"id": "legendary_forge", "label": "Legendary Forge", "expansion": "landmarks"},
+    {"id": "lost_city", "label": "Lost City", "expansion": "landmarks"},
+    {"id": "mousehold", "label": "Mousehold", "expansion": "homeland"},
+    {"id": "foxburrow", "label": "Foxburrow", "expansion": "homeland"},
+    {"id": "rabbittown", "label": "Rabbittown", "expansion": "homeland"},
+    {"id": "the_ferry", "label": "The Ferry", "expansion": "landmarks"},
+    {"id": "the_tower", "label": "The Tower", "expansion": "landmarks"}
+  ]
+}
