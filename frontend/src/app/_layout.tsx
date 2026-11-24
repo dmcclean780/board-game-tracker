@@ -1,3 +1,4 @@
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, useFonts } from "@expo-google-fonts/inter";
 import { Stack } from "expo-router";
 import { Button, Message, Screen } from "../components/ui";
 import { auth, AuthProvider, useAuth } from "../auth";
@@ -37,6 +38,8 @@ function Routes() {
 }
 
 export default function Layout() {
+  const [fonts, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold });
+  if (!fonts && !fontError) return null; // on error, fall back to the system font
   return (
     <ThemeProvider>
       <AuthProvider>

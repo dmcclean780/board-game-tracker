@@ -3,9 +3,15 @@ import { useColorScheme } from "react-native";
 
 export type Mode = "system" | "light" | "dark";
 
-const light = { bg: "#fff", text: "#111", muted: "#666", line: "#ddd", border: "#bbb", primary: "#1a56db", onPrimary: "#fff", error: "#b00020", placeholder: "#999" };
-const dark: typeof light = { bg: "#121212", text: "#eee", muted: "#aaa", line: "#333", border: "#555", primary: "#6ea0ff", onPrimary: "#0b1220", error: "#ff6b6b", placeholder: "#888" };
+const light = { bg: "#F3F4F6", surface: "#FFFFFF", text: "#111827", muted: "#6B7280", line: "#E5E7EB", border: "#D1D5DB", primary: "#0F9488", onPrimary: "#FFFFFF", error: "#B00020", placeholder: "#9CA3AF" };
+const dark: typeof light = { bg: "#1F2125", surface: "#2A2D32", text: "#E5E7EB", muted: "#9CA3AF", line: "#33363C", border: "#4B5058", primary: "#25D086", onPrimary: "#0B1F1C", error: "#FF6B6B", placeholder: "#6B7280" };
 export type Colors = typeof light;
+
+/** Inter has one font family per weight, so pick the family instead of setting fontWeight. */
+export function font(weight?: string | number) {
+  const w = Number(weight === "bold" ? 700 : weight) || 400;
+  return w >= 600 ? "Inter_600SemiBold" : w >= 500 ? "Inter_500Medium" : "Inter_400Regular";
+}
 
 const KEY = "theme-mode";
 type Ctx = { c: Colors; dark: boolean; mode: Mode; setMode: (m: Mode) => void };

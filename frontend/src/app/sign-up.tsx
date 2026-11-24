@@ -1,7 +1,6 @@
-import { Link } from "expo-router";
 import { useState } from "react";
 import { auth, appOrigin } from "../auth";
-import { Button, Field, Message, Screen } from "../components/ui";
+import { Button, Field, Message, Screen, TextLink } from "../components/ui";
 
 export default function SignUp() {
   const [name, setName] = useState("");
@@ -22,7 +21,7 @@ export default function SignUp() {
     return (
       <Screen title="Check your email">
         <Message text={`We sent a verification link to ${email}. Open it to finish creating your account.`} />
-        <Link href="/login">Back to sign in</Link>
+        <TextLink href="/login">Back to sign in</TextLink>
       </Screen>
     );
   }
@@ -33,7 +32,7 @@ export default function SignUp() {
       <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" />
       <Message error text={error} />
       <Button title="Create account" onPress={signUp} />
-      <Link href="/login">Already have an account? Sign in</Link>
+      <TextLink href="/login">Already have an account? Sign in</TextLink>
     </Screen>
   );
 }

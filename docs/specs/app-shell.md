@@ -10,7 +10,7 @@ Decide which screen a visitor sees from their sign-in state, and give signed-in 
 
 - **SHELL-1** A visitor who is not signed in who opens any app route sees the login screen. Only `/login`, `/sign-up`, `/forgot-password` and `/reset-password` are available to them.
   Tests: e2e `signed-out visitors land on the login screen`
-- **SHELL-2** Nothing is rendered until the stored session has been read and, for a signed-in User, `/me` has answered.
+- **SHELL-2** Nothing is rendered until the stored session has been read, the Inter font has loaded (or failed to, in which case the system font is used) and, for a signed-in User, `/me` has answered.
   Tests: none
 - **SHELL-3** *(removed: replaced by SHELL-11 and SHELL-12)*
 - **SHELL-4** *(removed: the greeting is gone; see SHELL-12, SHELL-14 and [SES-9](sessions.md))*
@@ -49,6 +49,8 @@ Decide which screen a visitor sees from their sign-in state, and give signed-in 
   Tests: jest `choosing Dark switches the theme and marks the choice`; e2e `the theme choice on the appearance tab is kept after reload`; colours actually changing, and following the device setting: none (checked by hand)
 - **SHELL-21** The saved choice is applied after the page loads, so a visitor who chose a different theme than the device's can see one frame of the other theme.
   Tests: none
+- **SHELL-22** The accent is teal green, the page background is light grey in light mode and dark grey in dark mode, and headers, footers, inputs and cards sit a shade apart from the page. The text font is Inter, in regular, medium and semibold. The exact colours are in `frontend/src/theme.tsx`.
+  Tests: jest `Text maps font weight to the matching Inter face`; colours and the font loading: none (checked by hand)
 
 ## Interfaces
 

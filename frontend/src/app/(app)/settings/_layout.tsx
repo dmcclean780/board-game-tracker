@@ -14,7 +14,7 @@ export default function SettingsLayout() {
   const { c } = useTheme();
   return (
     <View style={{ flex: 1 }}>
-      <View style={[s.tabs, { borderBottomColor: c.line }]}>
+      <View style={[s.tabs, { borderBottomColor: c.line, backgroundColor: c.surface }]}>
         {TABS.map((t) => {
           const on = path === t.path;
           return (

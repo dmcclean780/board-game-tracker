@@ -1,7 +1,6 @@
-import { Link } from "expo-router";
 import { useState } from "react";
 import { auth, appOrigin } from "../auth";
-import { Button, Field, Message, Screen } from "../components/ui";
+import { Button, Field, Message, Screen, TextLink } from "../components/ui";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -25,8 +24,8 @@ export default function Login() {
       <Message error text={error} />
       <Button title="Sign in" onPress={signIn} />
       <Button secondary title="Sign in with Google" onPress={google} />
-      <Link href="/forgot-password">Forgot password?</Link>
-      <Link href="/sign-up">Create an account</Link>
+      <TextLink href="/forgot-password">Forgot password?</TextLink>
+      <TextLink href="/sign-up">Create an account</TextLink>
     </Screen>
   );
 }

@@ -1,12 +1,20 @@
 import { ReactNode, useMemo } from "react";
 import { Picker } from "@react-native-picker/picker";
 import { Platform, Pressable, ScrollView, StyleSheet, Text as RNText, TextInput, TextInputProps, TextProps, View } from "react-native";
-import { Colors, useTheme } from "../theme";
+import { Link, LinkProps } from "expo-router";
+import { Colors, font, useTheme } from "../theme";
 
 /** Text in the theme's text colour; use this instead of react-native's Text. */
 export function Text({ style, ...props }: TextProps) {
   const { c } = useTheme();
-  return <RNText {...props} style={[{ color: c.text }, style]} />;
+  const { fontWeight, ...flat } = StyleSheet.flatten(style) ?? {};
+  return <RNText {...props} style={[{ color: c.text, fontFamily: font(fontWeight) }, flat]} />;
+}
+
+/** A link in the accent colour. */
+export function TextLink(props: LinkProps) {
+  const { c } = useTheme();
+  return <Link {...props} style={[{ color: c.primary, fontFamily: font() }, props.style]} />;
 }
 
 const useS = () => {
@@ -84,7 +92,7 @@ export function DateField({ label, value, onChange }: { label: string; value: st
   return (
     <View style={s.field}>
       <Text style={s.label}>{label}</Text>
-      <input type="date" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} style={{ borderWidth: 1, borderColor: c.border, borderRadius: 6, padding: 10, fontSize: 16, borderStyle: "solid", color: c.text, backgroundColor: c.bg, colorScheme: dark ? "dark" : "light" }} />
+      <input type="date" aria-label={label} value={value} onChange={(e) => onChange(e.target.value)} style={{ borderWidth: 1, borderColor: c.border, borderRadius: 6, padding: 10, fontSize: 16, fontFamily: font(), borderStyle: "solid", color: c.text, backgroundColor: c.surface, colorScheme: dark ? "dark" : "light" }} />
     </View>
   );
 }
@@ -115,7 +123,7 @@ const styles = (c: Colors) => StyleSheet.create({
   boxOn: { backgroundColor: c.primary },
   tick: { color: c.onPrimary, fontSize: 14 },
   title: { fontSize: 24, fontWeight: "600", marginBottom: 4 },
-  input: { borderWidth: 1, borderColor: c.border, borderRadius: 6, padding: 10, fontSize: 16, color: c.text, backgroundColor: c.bg },
+  input: { borderWidth: 1, borderColor: c.border, borderRadius: 6, padding: 10, fontSize: 16, fontFamily: font(), color: c.text, backgroundColor: c.surface },
   button: { backgroundColor: c.primary, borderRadius: 6, padding: 12, alignItems: "center" },
   secondary: { backgroundColor: "transparent", borderWidth: 1, borderColor: c.primary },
   disabled: { opacity: 0.5 },

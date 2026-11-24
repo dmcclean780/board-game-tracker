@@ -71,14 +71,14 @@ export function Footer() {
 }
 
 const styles = (c: Colors) => StyleSheet.create({
-  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: c.bg, borderBottomWidth: 1, borderBottomColor: c.line, zIndex: 10 },
+  header: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", paddingHorizontal: 16, paddingVertical: 12, backgroundColor: c.surface, borderBottomWidth: 1, borderBottomColor: c.line, zIndex: 10 },
   left: { flexDirection: "row", alignItems: "center", gap: 12, flexShrink: 1 },
   back: { fontSize: 22 },
   title: { fontSize: 20, fontWeight: "600" },
   user: { fontSize: 16, color: c.primary },
-  menu: { position: "absolute", top: "100%", right: 8, backgroundColor: c.bg, borderWidth: 1, borderColor: c.line, borderRadius: 6, minWidth: 140 },
+  menu: { position: "absolute", top: "100%", right: 8, backgroundColor: c.surface, borderWidth: 1, borderColor: c.line, borderRadius: 6, minWidth: 140 },
   item: { padding: 12 },
-  footer: { flexDirection: "row", backgroundColor: c.bg, borderTopWidth: 1, borderTopColor: c.line },
+  footer: { flexDirection: "row", backgroundColor: c.surface, borderTopWidth: 1, borderTopColor: c.line },
   tab: { flex: 1, alignItems: "center", paddingVertical: 8, gap: 2 },
   tabText: { fontSize: 12, color: c.muted },
   tabOn: { color: c.primary, fontWeight: "600" },

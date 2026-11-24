@@ -114,7 +114,7 @@ function RootFormBody({ data: d, onChange, step }: FormProps & { data: RootData 
         <>
           <Heading text="Players" />
           {rows.map((r, i) => (
-            <View key={i} style={{ gap: 8, borderWidth: 1, borderColor: c.line, borderRadius: 8, padding: 12 }}>
+            <View key={i} style={{ gap: 8, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, borderRadius: 8, padding: 12 }}>
               <Text style={{ fontWeight: "600" }}>Player {i + 1}</Text>
               <Field label={`Player ${i + 1} name`} hint="e.g. Ada" autoCapitalize="words" value={r.name} onChangeText={(name) => set(i, { name })} />
               <Checkbox
