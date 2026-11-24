@@ -1,9 +1,9 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { Text } from "react-native";
-import { api, useAuth } from "../../auth";
-import { Button, DateField, Field, Heading, Message, Screen, Select } from "../../components/ui";
-import { games, GameStep } from "../../games";
+import { api, useAuth } from "../../../auth";
+import { Button, DateField, Field, Heading, Message, Screen, Select } from "../../../components/ui";
+import { games, GameStep } from "../../../games";
 
 const STEPS = ["Session", "Setup", "Players", "Save"] as const;
 
@@ -33,7 +33,7 @@ export default function NewSession() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ game, played_on: date, notes, duration_minutes: minutes ? Number(minutes) : null, ...value }),
     });
-    if (res.status === 201) return router.dismissTo("/");
+    if (res.status === 201) return router.dismissTo("/results");
     setError(res.status === 422 ? await res.text() : "Could not save the session. Try again.");
   }
 
@@ -41,7 +41,7 @@ export default function NewSession() {
   const name = STEPS[step];
   const gameStep: GameStep = name === "Setup" ? "setup" : name === "Players" ? "players" : name === "Save" ? "save" : "none";
   return (
-    <Screen title="Record session">
+    <Screen>
       <Text>Step {step + 1} of {STEPS.length}</Text>
       {name === "Session" && (
         <>

@@ -2,11 +2,11 @@ import { ReactNode } from "react";
 import { Picker } from "@react-native-picker/picker";
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, TextInputProps, View } from "react-native";
 
-export function Screen({ title, children }: { title: string; children: ReactNode }) {
+export function Screen({ title, children }: { title?: string; children: ReactNode }) {
   return (
     <ScrollView style={s.scroll} contentContainerStyle={s.screen}>
       <View style={s.card}>
-        <Text accessibilityRole="header" style={s.title}>{title}</Text>
+        {title && <Text accessibilityRole="header" style={s.title}>{title}</Text>}
         {children}
       </View>
     </ScrollView>

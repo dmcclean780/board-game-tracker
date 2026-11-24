@@ -1,7 +1,7 @@
 use crate::auth::{Auth, AppState, AuthUser};
 use axum::{extract::State, http::StatusCode, Json};
 use chrono::{DateTime, Duration, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
 use utoipa::ToSchema;
 use uuid::Uuid;
@@ -40,12 +40,41 @@ pub async fn me(State(s): State<AppState>, u: AuthUser) -> Result<Json<Me>, Stat
     .fetch_one(&s.db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-    Ok(Json(Me {
-        id: r.id,
-        email: r.email,
-        display_name: r.display_name,
-        deletion_scheduled_for: r.deletion_requested_at.map(|t| t + Duration::days(GRACE_DAYS)),
-    }))
+    Ok(Json(r.into()))
+}
+
+impl From<Row> for Me {
+    fn from(r: Row) -> Me {
+        Me {
+            id: r.id,
+            email: r.email,
+            display_name: r.display_name,
+            deletion_scheduled_for: r.deletion_requested_at.map(|t| t + Duration::days(GRACE_DAYS)),
+        }
+    }
+}
+
+#[derive(Deserialize, ToSchema)]
+pub struct UpdateMe {
+    pub display_name: String,
+}
+
+/// Change the signed-in User's display name.
+#[utoipa::path(patch, path = "/me", request_body = UpdateMe, responses((status = 200, body = Me), (status = 401), (status = 404), (status = 422)))]
+pub async fn update_me(State(s): State<AppState>, u: AuthUser, Json(b): Json<UpdateMe>) -> Result<Json<Me>, StatusCode> {
+    let name = b.display_name.trim();
+    if name.is_empty() {
+        return Err(StatusCode::UNPROCESSABLE_ENTITY);
+    }
+    let r: Option<Row> = sqlx::query_as(
+        "UPDATE users SET display_name = $2 WHERE id = $1 RETURNING id, email, display_name, deletion_requested_at",
+    )
+    .bind(u.id)
+    .bind(name)
+    .fetch_optional(&s.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    r.map(|r| Json(r.into())).ok_or(StatusCode::NOT_FOUND)
 }
 
 async fn set_deletion(db: &PgPool, id: Uuid, sql: &str) -> StatusCode {

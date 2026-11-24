@@ -32,7 +32,7 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
   Tests: integration `sessions_are_private_to_their_recorder`, `record_list_view_and_delete_a_session`
 - **SES-8** Deleting a User row (the purge, [ACC-8](accounts.md)) deletes their Sessions.
   Tests: integration `purging_a_user_removes_their_sessions`
-- **SES-9** The home screen lists the User's Sessions as "<date> · <game> · Won by <winners>", or "No sessions yet.", and opens one when pressed.
+- **SES-9** The Results screen lists the User's Sessions as "<date> · <game> · Won by <winners>", or "No sessions yet.", and opens one when pressed.
   Tests: jest `lists recorded sessions with their winners`, `greets the user and shows the empty state`; e2e `record a Root session, view it and delete it`
 - **SES-10** "Record session" opens a four-screen flow, shown as "Step n of 4", with "Next" and "Back" buttons ("Cancel" on the first): Session, Setup, Players, Save. Session has a Game dropdown (always shown, even with one Game), the play date (the browser's date input on web) and optional duration. Setup and Players belong to the Game. Save shows a summary, the optional notes and "Save session", which sends it and returns home; a `422` reason is shown as an error. Nothing typed is lost when moving between screens.
   Tests: e2e `record a Root session, view it and delete it`; jest `shows one step at a time and keeps what was typed between steps`
@@ -67,4 +67,4 @@ Editing a Session; linking Players to Users and sharing Sessions; other Games; r
 
 ## Code
 
-`backend/src/sessions.rs`, `backend/games/core`, `backend/games/root` (rules in `src/lib.rs`, options in `data.json`), `db/migrations/0003_sessions.sql`, `frontend/src/games/`, `frontend/src/app/index.tsx`, `frontend/src/app/sessions/`.
+`backend/src/sessions.rs`, `backend/games/core`, `backend/games/root` (rules in `src/lib.rs`, options in `data.json`), `db/migrations/0003_sessions.sql`, `frontend/src/games/`, `frontend/src/app/(app)/results.tsx`, `frontend/src/app/(app)/sessions/`.

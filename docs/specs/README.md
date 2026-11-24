@@ -7,7 +7,7 @@ One file per feature area describing what the system **does today**: behaviour, 
 | [authentication.md](authentication.md) | Sign-up, email verification, sign-in (email and Google), password reset, sign-out, token checks |
 | [accounts.md](accounts.md) | The User record, `/me`, account deletion, restore, purge |
 | [sessions.md](sessions.md) | Recording, listing, viewing and deleting Game Sessions and their Results (Root) |
-| [app-shell.md](app-shell.md) | Screen routing, auth gate, home screen |
+| [app-shell.md](app-shell.md) | Screen routing, auth gate, header, footer, sections |
 | [platform.md](platform.md) | `/health`, OpenAPI, CORS, configuration |
 | [local-dev.md](local-dev.md) | `tilt up`: the local development stack |
 

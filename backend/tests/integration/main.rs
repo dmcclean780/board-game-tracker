@@ -119,6 +119,21 @@ async fn delete_then_restore() {
 }
 
 #[tokio::test]
+async fn update_me_changes_display_name() {
+    let (pool, _node) = db().await;
+    let t = token(Uuid::new_v4(), "ada@x.com", Some("Ada"));
+    let patch = |name: &str| send(&pool, "PATCH", "/me", &t, serde_json::json!({ "display_name": name }));
+    assert_eq!(patch("Bo").await.0, StatusCode::NOT_FOUND); // no row yet
+    call(&pool, "GET", "/me", Some(&t)).await;
+    let (status, body) = patch("  Bo  ").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains(r#""display_name":"Bo""#), "{body}");
+    assert_eq!(patch("   ").await.0, StatusCode::UNPROCESSABLE_ENTITY);
+    let (_, body) = call(&pool, "GET", "/me", Some(&t)).await;
+    assert!(body.contains(r#""display_name":"Bo""#), "{body}");
+}
+
+#[tokio::test]
 async fn purge_removes_only_users_past_grace_period() {
     let (pool, _node) = db().await;
     // Stand-in for the auth provider's admin API; records which accounts were deleted.

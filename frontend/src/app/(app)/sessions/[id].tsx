@@ -1,9 +1,9 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Text } from "react-native";
-import { api, useAuth } from "../../auth";
-import { Button, Message, Screen } from "../../components/ui";
-import { games, Session } from "../../games";
+import { api, useAuth } from "../../../auth";
+import { Button, Message, Screen } from "../../../components/ui";
+import { games, Session } from "../../../games";
 
 export default function SessionDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -21,13 +21,14 @@ export default function SessionDetail() {
 
   async function remove() {
     const res = await api(`/sessions/${id}`, auth!.access_token, { method: "DELETE" });
-    if (res.ok) router.dismissTo("/");
+    if (res.ok) router.dismissTo("/results");
     else setError("Could not delete the session. Try again.");
   }
 
   const def = s && games[s.game];
   return (
-    <Screen title={s ? `${def?.name ?? s.game} · ${s.played_on}` : "Session"}>
+    <Screen>
+      {s && <Text>{def?.name ?? s.game} · {s.played_on}</Text>}
       {s && def && <def.Detail session={s} />}
       {s?.duration_minutes ? <Text>{s.duration_minutes} minutes</Text> : null}
       {s?.notes ? <Text>{s.notes}</Text> : null}

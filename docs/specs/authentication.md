@@ -16,7 +16,7 @@ People identify themselves with an email and password or a Google account. Sign-
   Tests: e2e `sign up, verify email, sign out and sign back in`
 - **AUTH-4** An account whose email is not verified cannot sign in; the error "Email not confirmed" is shown.
   Tests: e2e `unverified email cannot sign in`
-- **AUTH-5** Opening the verification link signs the user in and shows the home screen.
+- **AUTH-5** Opening the verification link signs the user in and shows the Results screen.
   Tests: e2e `sign up, verify email, sign out and sign back in`
 - **AUTH-6** Signing in with a wrong email or password shows the provider's error and stays on the login screen.
   Tests: e2e `wrong password is rejected`
@@ -26,7 +26,7 @@ People identify themselves with an email and password or a Google account. Sign-
   Tests: none (manual, see runbook Part 3)
 - **AUTH-9** "Forgot password?" asks for an email and, if the provider accepts the request, always shows "If that email has an account, a reset link is on its way." It does not reveal whether the email exists. Provider errors (for example a rate limit) are shown instead.
   Tests: e2e `reset a forgotten password`
-- **AUTH-10** The reset link opens `/reset-password`, signs the user in, and lets them choose a new password; saving it goes to the home screen. Afterwards the new password works and the old one does not.
+- **AUTH-10** The reset link opens `/reset-password`, signs the user in, and lets them choose a new password; saving it goes to the Results screen. Afterwards the new password works and the old one does not.
   Tests: e2e `reset a forgotten password` (new password works); old password rejection: none
 - **AUTH-11** Opening `/reset-password` without a session shows "This reset link is invalid or has expired."
   Tests: none

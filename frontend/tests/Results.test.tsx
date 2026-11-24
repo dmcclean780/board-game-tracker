@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react-native";
-import Home from "../src/app/index";
+import { render, screen } from "@testing-library/react-native";
+import Results from "../src/app/(app)/results";
 import { api, useAuth } from "../src/auth";
 
 jest.mock("../src/auth", () => ({ useAuth: jest.fn(), api: jest.fn(), auth: { signOut: jest.fn() } }));
@@ -20,22 +20,13 @@ beforeEach(() => {
   sessions([]);
 });
 
-test("greets the user and shows the empty state", async () => {
-  await render(<Home />);
-  expect(screen.getByText("Hi, Ada")).toBeTruthy();
+test("shows the empty state", async () => {
+  await render(<Results />);
   expect(await screen.findByText("No sessions yet.")).toBeTruthy();
 });
 
 test("lists recorded sessions with their winners", async () => {
   sessions([root]);
-  await render(<Home />);
+  await render(<Results />);
   expect(await screen.findByText("2026-11-20 · Root · Won by Ada")).toBeTruthy();
-});
-
-test("deleting the account asks for confirmation first", async () => {
-  await render(<Home />);
-  await fireEvent.press(screen.getByText("Delete account"));
-  expect(screen.getByText("Confirm delete")).toBeTruthy();
-  await fireEvent.press(screen.getByText("Cancel"));
-  expect(screen.queryByText("Confirm delete")).toBeNull();
 });

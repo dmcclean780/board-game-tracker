@@ -23,9 +23,7 @@ function Routes() {
         <Stack.Screen name="forgot-password" />
       </Stack.Protected>
       <Stack.Protected guard={!!session && !scheduled}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="sessions/new" />
-        <Stack.Screen name="sessions/[id]" />
+        <Stack.Screen name="(app)" />
       </Stack.Protected>
       <Stack.Protected guard={!!session && scheduled}>
         <Stack.Screen name="restore" />
