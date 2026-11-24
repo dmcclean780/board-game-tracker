@@ -14,6 +14,13 @@ for line in str(read_file(env_file)).splitlines():
         backend_env[key.strip()] = value.strip()
 watch_file('.env')
 
+# `tilt up -- --tailscale` points the app at this machine's Tailscale IP instead of localhost.
+config.define_bool('tailscale')
+if config.parse().get('tailscale'):
+    ip = str(local('tailscale ip -4', quiet=True)).strip()
+    backend_env['EXPO_PUBLIC_AUTH_URL'] = 'http://%s:9999' % ip
+    backend_env['EXPO_PUBLIC_API_URL'] = 'http://%s:3000' % ip
+
 local_resource(
     'backend',
     serve_cmd='cargo run',

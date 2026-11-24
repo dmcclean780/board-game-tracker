@@ -23,9 +23,12 @@ One command that starts everything needed to use the app on a developer machine.
 - **DEV-7** `tilt down` keeps the database volume, so accounts survive a restart.
   Tests: none
 
+- **DEV-8** `tilt up -- --tailscale` sets the app's `EXPO_PUBLIC_AUTH_URL` and `EXPO_PUBLIC_API_URL` to this machine's Tailscale IPv4 address (`tailscale ip -4`), overriding `.env`, so other devices on the tailnet can use the app.
+  Tests: none
+
 ## Interfaces
 
-`tilt up`, `tilt down`. Tilt is installed with `proto install`. Reset the database with `docker compose down -v` in `db/`.
+`tilt up` (local), `tilt up -- --tailscale` (over Tailscale), `tilt down`. Tilt is installed with `proto install`. Reset the database with `docker compose down -v` in `db/`.
 
 ## Not yet
 
