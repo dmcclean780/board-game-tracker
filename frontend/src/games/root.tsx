@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Text, View } from "react-native";
-import { Button, Checkbox, Field, Heading, Message, Select } from "../components/ui";
+import { View } from "react-native";
+import { Button, Checkbox, Field, Heading, Message, Select, Text } from "../components/ui";
+import { useTheme } from "../theme";
 import { Entry, labelOf, useGameData } from "./data";
 import type { GameDef, GameStep, Session } from "./index";
 
@@ -55,6 +56,7 @@ function RootForm(props: FormProps) {
 }
 
 function RootFormBody({ data: d, onChange, step }: FormProps & { data: RootData }) {
+  const { c } = useTheme();
   const [rows, setRows] = useState<Row[]>(() => {
     const first = { name: "", faction: offered(d.factions)[0].id, score: "", winner: false, partner: null };
     return [first, { ...first, faction: freeFaction(d, [first]) }];
@@ -112,7 +114,7 @@ function RootFormBody({ data: d, onChange, step }: FormProps & { data: RootData 
         <>
           <Heading text="Players" />
           {rows.map((r, i) => (
-            <View key={i} style={{ gap: 8, borderWidth: 1, borderColor: "#ddd", borderRadius: 8, padding: 12 }}>
+            <View key={i} style={{ gap: 8, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, borderRadius: 8, padding: 12 }}>
               <Text style={{ fontWeight: "600" }}>Player {i + 1}</Text>
               <Field label={`Player ${i + 1} name`} hint="e.g. Ada" autoCapitalize="words" value={r.name} onChangeText={(name) => set(i, { name })} />
               <Checkbox

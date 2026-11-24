@@ -1,7 +1,6 @@
-import { Link } from "expo-router";
 import { useState } from "react";
 import { auth, appOrigin } from "../auth";
-import { Button, Field, Message, Screen } from "../components/ui";
+import { Button, Field, Message, Screen, TextLink } from "../components/ui";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -21,7 +20,7 @@ export default function ForgotPassword() {
       <Message error text={error} />
       <Message text={sent ? "If that email has an account, a reset link is on its way." : null} />
       <Button title="Send reset link" onPress={send} />
-      <Link href="/login">Back to sign in</Link>
+      <TextLink href="/login">Back to sign in</TextLink>
     </Screen>
   );
 }

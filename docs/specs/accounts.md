@@ -30,12 +30,17 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
   Tests: integration `purge_removes_only_users_past_grace_period` (provider unreachable); "not found": none
 - **ACC-10** Users who are active or still inside the 30 days are never purged.
   Tests: integration `purge_removes_only_users_past_grace_period`
+- **ACC-11** `PATCH /me` with `{ "display_name": "<name>" }` stores the trimmed name and returns `200` with the updated `Me`. A blank name returns `422`; a User with no row yet returns `404`. Later `GET /me` calls keep the new name (ACC-2).
+  Tests: integration `update_me_changes_display_name`
+- **ACC-12** Changing the email is done with the auth provider, which confirms it by mail; the stored email follows on the next `GET /me` (ACC-2). The backend has no route for it.
+  Tests: none
 
 ## Interfaces
 
 | Route | Success | Other |
 |---|---|---|
 | `GET /me` | `200` `Me` | `401`, `500` |
+| `PATCH /me` | `200` `Me` | `401`, `404`, `422`, `500` |
 | `DELETE /me` | `204` | `401`, `404`, `500` |
 | `POST /me/restore` | `204` | `401`, `404`, `500` |
 
@@ -43,8 +48,8 @@ Table `users(id, email, display_name, created_at, deletion_requested_at)`, migra
 
 ## Not yet
 
-Changing display name or email; linking a User to a Player; immediate hard delete; a way to trigger the purge manually.
+Linking a User to a Player; immediate hard delete; a way to trigger the purge manually.
 
 ## Code
 
-`backend/src/users.rs`, `backend/src/main.rs` (purge loop), `db/migrations/0002_users.sql`, `frontend/src/app/{index,restore}.tsx`.
+`backend/src/users.rs`, `backend/src/main.rs` (purge loop), `db/migrations/0002_users.sql`, `frontend/src/app/(app)/settings/account.tsx`, `frontend/src/app/restore.tsx`.

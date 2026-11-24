@@ -12,7 +12,7 @@ export default function ResetPassword() {
     setError(null);
     const { error } = await auth.updateUser({ password });
     if (error) setError(error.message);
-    else router.replace("/");
+    else router.replace("/results");
   }
 
   if (!session) return <Screen title="Reset your password"><Message error text="This reset link is invalid or has expired." /></Screen>;

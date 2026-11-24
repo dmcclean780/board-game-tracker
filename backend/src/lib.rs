@@ -15,7 +15,7 @@ pub struct Health {
 }
 
 #[derive(OpenApi)]
-#[openapi(paths(health, users::me, users::delete_me, users::restore_me, sessions::list_games, sessions::get_game, sessions::create_session, sessions::list_sessions, sessions::get_session, sessions::delete_session), components(schemas(Health, users::Me, sessions::GameInfo, sessions::Session, sessions::NewSession)))]
+#[openapi(paths(health, users::me, users::delete_me, users::update_me, users::restore_me, sessions::list_games, sessions::get_game, sessions::create_session, sessions::list_sessions, sessions::get_session, sessions::delete_session), components(schemas(Health, users::Me, users::UpdateMe, sessions::GameInfo, sessions::Session, sessions::NewSession)))]
 pub struct ApiDoc;
 
 /// Liveness plus database connectivity check.
@@ -33,7 +33,7 @@ pub fn app(state: AppState) -> Router {
     Router::new()
         .route("/health", get(health))
         .route("/openapi.json", get(openapi))
-        .route("/me", get(users::me).delete(users::delete_me))
+        .route("/me", get(users::me).delete(users::delete_me).patch(users::update_me))
         .route("/me/restore", post(users::restore_me))
         .route("/games", get(sessions::list_games))
         .route("/games/{id}", get(sessions::get_game))

@@ -1,8 +1,11 @@
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, useFonts } from "@expo-google-fonts/inter";
 import { Stack } from "expo-router";
 import { Button, Message, Screen } from "../components/ui";
 import { auth, AuthProvider, useAuth } from "../auth";
+import { ThemeProvider, useTheme } from "../theme";
 
 function Routes() {
+  const { c } = useTheme();
   const { session, me, meError } = useAuth();
   if (session === undefined) return null;
   if (session && meError) {
@@ -16,16 +19,14 @@ function Routes() {
   if (session && !me) return null; // waiting for /me
   const scheduled = !!me?.deletion_scheduled_for;
   return (
-    <Stack screenOptions={{ headerShown: false }}>
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.bg } }}>
       <Stack.Protected guard={!session}>
         <Stack.Screen name="login" />
         <Stack.Screen name="sign-up" />
         <Stack.Screen name="forgot-password" />
       </Stack.Protected>
       <Stack.Protected guard={!!session && !scheduled}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="sessions/new" />
-        <Stack.Screen name="sessions/[id]" />
+        <Stack.Screen name="(app)" />
       </Stack.Protected>
       <Stack.Protected guard={!!session && scheduled}>
         <Stack.Screen name="restore" />
@@ -37,9 +38,13 @@ function Routes() {
 }
 
 export default function Layout() {
+  const [fonts, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold });
+  if (!fonts && !fontError) return null; // on error, fall back to the system font
   return (
-    <AuthProvider>
-      <Routes />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <Routes />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
