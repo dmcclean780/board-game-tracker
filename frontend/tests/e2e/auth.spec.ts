@@ -93,7 +93,7 @@ test("record a Root session, view it and delete it", async ({ page }) => {
   await signUpAndVerify(page, uniqueEmail());
   await expect(page.getByText("No sessions yet.")).toBeVisible();
   await page.getByRole("button", { name: "Record session" }).click();
-  await expect(page.getByText("Step 1 of 5")).toBeVisible();
+  await expect(page.getByText("Step 1 of 4")).toBeVisible();
   await expect(page.getByLabel("Game")).toHaveValue("root");
   await next(page);
   await expect(page.getByRole("heading", { name: "Setup" })).toBeVisible();
@@ -106,9 +106,8 @@ test("record a Root session, view it and delete it", async ({ page }) => {
   await page.getByLabel("Player 1 won").click();
   await page.getByLabel("Player 2 name").fill("Bo");
   await next(page);
-  await page.getByLabel("Notes (optional)").fill("Close game");
-  await next(page);
   await expect(page.getByText("Players: Ada, Bo")).toBeVisible();
+  await page.getByLabel("Notes (optional)").fill("Close game");
   await page.getByRole("button", { name: "Save session" }).click();
   await page.getByText(/· Root · Won by Ada/).click();
   await expect(page.getByText("Marsh map · Exiles and Partisans deck")).toBeVisible();
@@ -132,7 +131,6 @@ test("a Vagabond coalition wins with its partner", async ({ page }) => {
   await page.getByLabel("Player 2 coalition with").selectOption({ label: "Ada" });
   await page.getByLabel("Player 1 won").click();
   await expect(page.getByLabel("Player 2 won (with Ada)")).toBeDisabled();
-  await next(page);
   await next(page);
   await page.getByRole("button", { name: "Save session" }).click();
   await expect(page.getByText(/· Root · Won by Ada, Bo/)).toBeVisible();

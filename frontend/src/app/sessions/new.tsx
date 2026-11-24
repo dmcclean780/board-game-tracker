@@ -5,7 +5,7 @@ import { api, useAuth } from "../../auth";
 import { Button, DateField, Field, Heading, Message, Screen, Select } from "../../components/ui";
 import { games, GameStep } from "../../games";
 
-const STEPS = ["Session", "Setup", "Players", "Notes", "Save"] as const;
+const STEPS = ["Session", "Setup", "Players", "Save"] as const;
 
 export default function NewSession() {
   const [step, setStep] = useState(0);
@@ -52,18 +52,12 @@ export default function NewSession() {
         </>
       )}
       <Form key={game} onChange={setValue} step={gameStep} />
-      {name === "Notes" && (
-        <>
-          <Heading text="Notes" />
-          <Field label="Notes (optional)" value={notes} onChangeText={setNotes} />
-        </>
-      )}
       {name === "Save" && (
         <>
           <Heading text="Save" />
           <Text>{games[game].name} on {date}{minutes ? ` · ${minutes} minutes` : ""}</Text>
           {value && <Text>Players: {value.players.join(", ")}</Text>}
-          {notes ? <Text>Notes: {notes}</Text> : null}
+          <Field label="Notes (optional)" value={notes} onChangeText={setNotes} />
           <Message error text={error} />
           <Button title="Save session" onPress={save} disabled={!value} />
         </>
