@@ -1,5 +1,5 @@
 //! Root: each player has a faction and a score. See docs/business-rules/root-results.md.
-use bgt_games::Game;
+use bgt_games::{Details, Game, Line, Setup};
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashSet};
 use std::sync::OnceLock;
@@ -198,19 +198,22 @@ impl Game for Root {
         r.players.iter().filter(|(_, p)| p.winner).map(|(n, _)| n.clone()).collect()
     }
 
-    fn details(r: &RootResult) -> Vec<String> {
+    fn details(r: &RootResult) -> Details {
         let d = data();
-        let mut lines = vec![format!("{} map · {} deck", label(&d.maps, &r.map), label(&d.decks, &r.deck))];
+        let mut setup = vec![Setup::new("Map", label(&d.maps, &r.map)), Setup::new("Deck", label(&d.decks, &r.deck))];
         if !r.landmarks.is_empty() {
-            lines.push(format!("Landmarks: {}", r.landmarks.iter().map(|l| label(&d.landmarks, l)).collect::<Vec<_>>().join(", ")));
+            setup.push(Setup::new("Landmarks", r.landmarks.iter().map(|l| label(&d.landmarks, l)).collect::<Vec<_>>().join(", ")));
         }
-        lines.push(format!("{} victory", label(&d.victories, &r.victory)));
-        for (name, p) in &r.players {
-            let partner = p.partner.as_ref().map(|x| format!(" · coalition with {x}")).unwrap_or_default();
-            let won = if p.winner { " · winner" } else { "" };
-            lines.push(format!("{name} · {} · {}{partner}{won}", label(&d.factions, &p.faction), p.score));
-        }
-        lines
+        setup.push(Setup::new("Victory", label(&d.victories, &r.victory)));
+        let players = r
+            .players
+            .iter()
+            .map(|(name, p)| {
+                let partner = p.partner.as_ref().map(|x| format!(" · coalition with {x}")).unwrap_or_default();
+                Line::new(name, format!("{} · {}{partner}", label(&d.factions, &p.faction), p.score))
+            })
+            .collect();
+        Details { setup, players }
     }
 }
 
@@ -247,8 +250,14 @@ mod tests {
         .unwrap();
         assert_eq!(Root::winners(&r), ["Ada", "Bo"]);
         assert_eq!(
-            Root::details(&r),
-            ["Autumn map · Standard deck", "Landmarks: Lost City", "Dominance victory", "Ada · Vagabond · 3 · coalition with Bo · winner", "Bo · Eyrie Dynasties · 20 · winner"]
+            serde_json::to_value(Root::details(&r)).unwrap(),
+            json!({
+                "setup": [
+                    { "title": "Map", "value": "Autumn" }, { "title": "Deck", "value": "Standard" },
+                    { "title": "Landmarks", "value": "Lost City" }, { "title": "Victory", "value": "Dominance" }
+                ],
+                "players": [{ "name": "Ada", "summary": "Vagabond · 3 · coalition with Bo" }, { "name": "Bo", "summary": "Eyrie Dynasties · 20" }]
+            })
         );
     }
 
