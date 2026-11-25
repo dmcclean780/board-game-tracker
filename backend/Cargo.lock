@@ -177,6 +177,7 @@ name = "bgt-backend"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "bgt-game-arcs",
  "bgt-game-root",
  "bgt-games",
  "chrono",
@@ -192,6 +193,15 @@ dependencies = [
  "tower-http",
  "utoipa",
  "uuid",
+]
+
+[[package]]
+name = "bgt-game-arcs"
+version = "0.1.0"
+dependencies = [
+ "bgt-games",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

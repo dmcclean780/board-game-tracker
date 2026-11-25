@@ -182,12 +182,12 @@ fn root_session() -> serde_json::Value {
 }
 
 #[tokio::test]
-async fn games_lists_root() {
+async fn games_lists_root_and_arcs() {
     let (pool, _node) = db().await;
     let t = token(Uuid::new_v4(), "ada@x.com", None);
     let (status, body) = call(&pool, "GET", "/games", Some(&t)).await;
     assert_eq!(status, StatusCode::OK);
-    assert!(body.contains(r#""id":"root""#), "{body}");
+    assert!(body.contains(r#""id":"root""#) && body.contains(r#""id":"arcs""#), "{body}");
     assert_eq!(call(&pool, "GET", "/games", None).await.0, StatusCode::UNAUTHORIZED);
 }
 
@@ -200,6 +200,10 @@ async fn a_games_data_is_served_to_signed_in_users() {
     let v: serde_json::Value = serde_json::from_str(&body).unwrap();
     assert_eq!(v["rules"]["points_to_win"], 30);
     assert!(v["factions"].as_array().unwrap().iter().any(|f| f["id"] == "vagabond" && f["coalition"] == true));
+    let (status, body) = call(&pool, "GET", "/games/arcs", Some(&t)).await;
+    assert_eq!(status, StatusCode::OK);
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert!(v["setups"].as_array().unwrap().iter().any(|s| s["id"] == "2p_frontiers" && s["players"] == 2));
     assert_eq!(call(&pool, "GET", "/games/chess", Some(&t)).await.0, StatusCode::NOT_FOUND);
     assert_eq!(call(&pool, "GET", "/games/root", None).await.0, StatusCode::UNAUTHORIZED);
 }
@@ -226,6 +230,24 @@ async fn record_list_view_and_delete_a_session() {
     assert_eq!(call(&pool, "DELETE", &format!("/sessions/{id}"), Some(&t)).await.0, StatusCode::NO_CONTENT);
     assert_eq!(call(&pool, "GET", &format!("/sessions/{id}"), Some(&t)).await.0, StatusCode::NOT_FOUND);
     assert_eq!(call(&pool, "DELETE", &format!("/sessions/{id}"), Some(&t)).await.0, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn an_arcs_session_is_recorded_and_checked() {
+    let (pool, _node) = db().await;
+    let t = token(Uuid::new_v4(), "ada@x.com", None);
+    call(&pool, "GET", "/me", Some(&t)).await;
+    let mut arcs = serde_json::json!({
+        "game": "arcs", "players": ["Ada", "Bo"],
+        "result": { "setup": "2p_frontiers", "leaders": true, "players": {
+            "Ada": { "power": 12, "winner": true, "leader": "elder", "lore": ["tool_priests"] },
+            "Bo": { "power": 9, "winner": false, "leader": "corsair" } } },
+    });
+    assert_eq!(send(&pool, "POST", "/sessions", &t, arcs.clone()).await.0, StatusCode::CREATED);
+    arcs["result"]["setup"] = "3p_core_conflict".into();
+    let (status, msg) = send(&pool, "POST", "/sessions", &t, arcs).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(msg.contains("is not for 2 players"), "{msg}");
 }
 
 #[tokio::test]
