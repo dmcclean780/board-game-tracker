@@ -33,13 +33,13 @@ fn check(game: &str, players: &[String], result: &Value) -> Result<(), String> {
 }
 
 /// The Game's name and the text the app shows for a Result; the app has no Game-specific code.
-fn describe_game(game: &str, result: &Value) -> (String, String, Vec<String>) {
+fn describe_game(game: &str, result: &Value) -> (String, Vec<String>, Vec<String>) {
     match registry().iter().find(|g| g.id == game) {
         Some(g) => {
-            let (summary, details) = (g.describe)(result).unwrap_or_default();
-            (g.name.into(), summary, details)
+            let (winners, details) = (g.describe)(result).unwrap_or_default();
+            (g.name.into(), winners, details)
         }
-        None => (game.into(), String::new(), Vec::new()),
+        None => (game.into(), Vec::new(), Vec::new()),
     }
 }
 
@@ -57,9 +57,9 @@ pub struct Session {
     /// The Game's display name.
     #[sqlx(skip)]
     pub game_name: String,
-    /// One line for the Results list, e.g. "Won by Ada".
+    /// The Players who won, for the Results list.
     #[sqlx(skip)]
-    pub summary: String,
+    pub winners: Vec<String>,
     /// The lines the Session screen shows for the Result.
     #[sqlx(skip)]
     pub details: Vec<String>,
@@ -67,7 +67,7 @@ pub struct Session {
 
 impl Session {
     fn described(mut self) -> Self {
-        (self.game_name, self.summary, self.details) = describe_game(&self.game, &self.result);
+        (self.game_name, self.winners, self.details) = describe_game(&self.game, &self.result);
         self
     }
 }

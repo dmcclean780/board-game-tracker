@@ -6,9 +6,9 @@ export type Session = {
   duration_minutes: number | null;
   players: string[];
   result: unknown;
-  /** Written by the server, so the app has no Game-specific code: the Game's name, the Results-list line and the Session-screen lines. */
+  /** Written by the server, so the app has no Game-specific code: the Game's name, the Results-list winners and the Session-screen lines. */
   game_name: string;
-  summary: string;
+  winners: string[];
   details: string[];
 };
 

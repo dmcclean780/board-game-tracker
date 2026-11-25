@@ -3,8 +3,8 @@ import { useColorScheme } from "react-native";
 
 export type Mode = "system" | "light" | "dark";
 
-const light = { bg: "#F3F4F6", surface: "#FFFFFF", text: "#111827", muted: "#6B7280", line: "#E5E7EB", border: "#D1D5DB", primary: "#0F9488", onPrimary: "#FFFFFF", error: "#B00020", placeholder: "#9CA3AF" };
-const dark: typeof light = { bg: "#1F2125", surface: "#2A2D32", text: "#E5E7EB", muted: "#9CA3AF", line: "#33363C", border: "#4B5058", primary: "#25D086", onPrimary: "#0B1F1C", error: "#FF6B6B", placeholder: "#6B7280" };
+const light = { bg: "#F3F4F6", surface: "#FFFFFF", text: "#111827", muted: "#6B7280", line: "#E5E7EB", border: "#D1D5DB", primary: "#0F9488", onPrimary: "#FFFFFF", error: "#B00020", placeholder: "#9CA3AF", gold: "#B8860B" };
+const dark: typeof light = { bg: "#1F2125", surface: "#2A2D32", text: "#E5E7EB", muted: "#9CA3AF", line: "#33363C", border: "#4B5058", primary: "#25D086", onPrimary: "#0B1F1C", error: "#FF6B6B", placeholder: "#6B7280", gold: "#F5C542" };
 export type Colors = typeof light;
 
 /** Inter has one font family per weight, so pick the family instead of setting fontWeight. */

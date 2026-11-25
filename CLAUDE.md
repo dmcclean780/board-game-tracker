@@ -14,3 +14,7 @@ After implementing a change, in the same worktree and branch, before saying it i
 - Record decisions in an ADR and domain rules in `docs/business-rules/` instead, and link to them from the spec rather than copying them.
 - Changes with no observable behaviour (refactors, formatting, dependency bumps) need no spec change.
 - Mention in the final summary which specs you touched.
+
+## Commits and PRs
+
+Commit as you go during the workflow, on the task's branch in its worktree, in small logical commits. When the work is done, offer to open a PR (use the `pr` skill for the body).

@@ -134,7 +134,7 @@ test("record a Root session, view it and delete it", async ({ page }) => {
   await expect(page.getByText("Players: Ada, Bo")).toBeVisible();
   await page.getByLabel("Notes (optional)").fill("Close game");
   await page.getByRole("button", { name: "Save session" }).click();
-  await page.getByText(/· Root · Won by Ada/).click();
+  await page.getByRole("link", { name: /Root, .*, won by Ada/ }).click();
   await expect(page.getByText("Marsh map · Exiles and Partisans deck")).toBeVisible();
   await expect(page.getByText("Landmarks: Mousehold")).toBeVisible();
   await expect(page.getByText("30 Points victory")).toBeVisible();
@@ -159,7 +159,7 @@ test("a Vagabond coalition wins with its partner", async ({ page }) => {
   await expect(page.getByLabel("Player 2 won (with Ada)")).toBeDisabled();
   await next(page);
   await page.getByRole("button", { name: "Save session" }).click();
-  await expect(page.getByText(/· Root · Won by Ada, Bo/)).toBeVisible();
+  await expect(page.getByRole("link", { name: /Root, .*, won by Ada, Bo/ })).toBeVisible();
 });
 
 test("a faction another player holds cannot be picked", async ({ page }) => {
