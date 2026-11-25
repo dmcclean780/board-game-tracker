@@ -88,9 +88,8 @@ impl Game for OldKingsCrown {
         Ok(())
     }
 
-    fn summary(r: &OkcResult) -> String {
-        let winners: Vec<&str> = r.players.iter().filter(|(_, p)| p.winner).map(|(n, _)| n.as_str()).collect();
-        format!("Won by {}", winners.join(", "))
+    fn winners(r: &OkcResult) -> Vec<String> {
+        r.players.iter().filter(|(_, p)| p.winner).map(|(n, _)| n.clone()).collect()
     }
 
     fn details(r: &OkcResult) -> Vec<String> {
@@ -131,7 +130,7 @@ mod tests {
     #[test]
     fn describes_a_session() {
         let r: OkcResult = serde_json::from_value(res(json!({ "a": p("clans", 12, true), "b": p("nobility", 9, false) }))).unwrap();
-        assert_eq!(OldKingsCrown::summary(&r), "Won by a");
+        assert_eq!(OldKingsCrown::winners(&r), ["a"]);
         assert_eq!(OldKingsCrown::details(&r), ["a · The Clans · 12 points · winner", "b · The Nobility · 9 points"]);
     }
 

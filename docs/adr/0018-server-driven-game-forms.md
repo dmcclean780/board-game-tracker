@@ -17,6 +17,8 @@ Each Game had a hand-written React form, a copy of its rule checks and its own S
 
 The `form` key of each Game's `data.json` (typed as `bgt_games::Form`) lists the setup and per-Player fields with a few generic types (`select`, `multi`, `choice`, `checkbox`, `number`, `winner`, `repeat`, `player`) and flags (`unique`, `filter_by_players`, `blank`, `when`). One `GameForm` in the app renders it and builds the same Result JSON as before. The Game trait gains `summary` and `details`, and Sessions carry `game_name`, `summary` and `details`. `POST /games/{id}/check` runs the Game's rules without storing, so the form shows the server's message instead of copying the rules.
 
+Update 2026-11-25: `summary` ("Won by …") was replaced by `winners` (the winning Players' names), so the Results card can lay out the winner beside a crown.
+
 This extends [ADR 0017](0017-game-data-in-json-files.md); the stored Result is unchanged.
 
 ## Consequences

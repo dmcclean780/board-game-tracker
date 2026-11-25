@@ -13,8 +13,8 @@ pub trait Game {
     type Result: DeserializeOwned;
     /// The Game's rules. `players` are already known to be non-blank and unique.
     fn check(players: &[String], result: &Self::Result) -> Result<(), String>;
-    /// One line for the Results list, e.g. "Won by Ada".
-    fn summary(result: &Self::Result) -> String;
+    /// The Players who won, for the Results list.
+    fn winners(result: &Self::Result) -> Vec<String>;
     /// The lines the Session screen shows for the Result.
     fn details(result: &Self::Result) -> Vec<String>;
 }
@@ -97,9 +97,9 @@ pub fn check_form<G: Game>() {
 }
 
 /// The Result's Results-list line and Session-screen lines; None when it is not this Game's Result.
-pub fn describe<G: Game>(result: &Value) -> Option<(String, Vec<String>)> {
+pub fn describe<G: Game>(result: &Value) -> Option<(Vec<String>, Vec<String>)> {
     let r: G::Result = serde_json::from_value(result.clone()).ok()?;
-    Some((G::summary(&r), G::details(&r)))
+    Some((G::winners(&r), G::details(&r)))
 }
 
 /// The Game's data file, parsed.
@@ -128,7 +128,7 @@ pub struct GameEntry {
     pub name: &'static str,
     pub data: fn() -> Value,
     pub check: fn(&[String], &Value) -> Result<(), String>,
-    pub describe: fn(&Value) -> Option<(String, Vec<String>)>,
+    pub describe: fn(&Value) -> Option<(Vec<String>, Vec<String>)>,
 }
 
 pub fn entry<G: Game>() -> GameEntry {
@@ -149,8 +149,8 @@ mod tests {
         fn check(_: &[String], _: &u32) -> Result<(), String> {
             Ok(())
         }
-        fn summary(r: &u32) -> String {
-            format!("n={r}")
+        fn winners(r: &u32) -> Vec<String> {
+            vec![format!("n={r}")]
         }
         fn details(r: &u32) -> Vec<String> {
             vec![r.to_string()]
@@ -168,7 +168,7 @@ mod tests {
 
     #[test]
     fn describes_a_result() {
-        assert_eq!(describe::<Pass>(&json!(7)), Some(("n=7".into(), vec!["7".into()])));
+        assert_eq!(describe::<Pass>(&json!(7)), Some((vec!["n=7".into()], vec!["7".into()])));
         assert_eq!(describe::<Pass>(&json!("x")), None);
     }
 

@@ -246,7 +246,7 @@ async fn record_list_view_and_delete_a_session() {
     assert!(body.contains(r#""played_on":"2026-11-20""#) && body.contains("marquise_de_cat"), "{body}");
     let v: serde_json::Value = serde_json::from_str(&body).unwrap();
     assert_eq!(v["game_name"], "Root");
-    assert_eq!(v["summary"], "Won by Ada");
+    assert_eq!(v["winners"], serde_json::json!(["Ada"]));
     assert_eq!(v["details"][0], "Autumn map · Standard deck");
     assert_eq!(call(&pool, "DELETE", &format!("/sessions/{id}"), Some(&t)).await.0, StatusCode::NO_CONTENT);
     assert_eq!(call(&pool, "GET", &format!("/sessions/{id}"), Some(&t)).await.0, StatusCode::NOT_FOUND);

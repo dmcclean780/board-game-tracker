@@ -32,8 +32,8 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
   Tests: integration `sessions_are_private_to_their_recorder`, `record_list_view_and_delete_a_session`
 - **SES-8** Deleting a User row (the purge, [ACC-8](accounts.md)) deletes their Sessions.
   Tests: integration `purging_a_user_removes_their_sessions`
-- **SES-9** The Results screen lists the User's Sessions as "<date> · <game name> · <summary>" (for every Game the summary is "Won by <winners>"), or "No sessions yet.", and opens one when pressed. The game name and summary come from the server (SES-27).
-  Tests: jest `lists recorded sessions with their winners`, `greets the user and shows the empty state`; e2e `record a Root session, view it and delete it`
+- **SES-9** The Results screen lists the User's Sessions as cards, or "No sessions yet.", and opens one when pressed. A card shows the game name and the play date on one row, and below it a gold crown and the winners' names joined with ", " (no crown row when `winners` is empty). The card's accessible name is "<game name>, <date>, won by <winners>". The game name and winners come from the server (SES-27).
+  Tests: jest `lists recorded sessions with their winners`, `shows the empty state`; e2e `record a Root session, view it and delete it`
 - **SES-10** "Record session" opens a four-screen flow, shown as "Step n of 4", with "Next" and "Back" buttons ("Cancel" on the first): Session, Setup, Players, Save. Session has a Game dropdown listing the Games from `GET /games` (always shown, even with one Game), the play date (the browser's date input on web) and optional duration. Setup and Players are built from the Game's form (SES-18). Save shows a summary, the optional notes and "Save session", which sends it and returns home; a `422` reason is shown as an error. Nothing typed is lost when moving between screens.
   Tests: e2e `record a Root session, view it and delete it`
 - **SES-11** `removed`: now SES-18 (Root's Setup screen is its `form`: Map, Deck, Landmarks and the Win condition choice, "30 Points" the default).
@@ -55,15 +55,15 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
   Tests: none
 - **SES-22** `removed`: now SES-13, SES-15 and SES-18 (Arcs: power, leader when leaders are on, lore).
   Tests: none
-- **SES-23** An Arcs Session screen shows the setup card, the number of players, whether leaders were used, and each Player's power, leader, lore and winner mark; the Results list shows "Won by <winner>".
+- **SES-23** An Arcs Session screen shows the setup card, the number of players, whether leaders were used, and each Player's power, leader, lore and winner mark; the Results list shows the winner (SES-9).
   Tests: unit `describes_a_session` (Arcs)
 - **SES-24** `POST /sessions` for Old King's Crown is accepted only when its Result meets BR-OKC-001 and BR-OKC-002, and is rejected with `422` otherwise, naming the broken rule.
   Tests: integration `an_old_kings_crown_session_is_recorded_and_checked`; unit in `backend/games/old-kings-crown` (`a_plain_session_passes`, `needs_one_to_four_players`, `houses_must_exist_and_be_unique`, `needs_exactly_one_winner_with_the_top_score`, `score_is_not_negative_and_players_must_match`, `data_file_is_well_formed`)
 - **SES-25** `removed`: now SES-18 (Old King's Crown: 1 to 4 players, house and score).
   Tests: none
-- **SES-26** An Old King's Crown Session screen shows each Player's house, score and winner mark; the Results list shows "Won by <winner>".
+- **SES-26** An Old King's Crown Session screen shows each Player's house, score and winner mark; the Results list shows the winner (SES-9).
   Tests: unit `describes_a_session` (Old King's Crown)
-- **SES-27** `GET /sessions`, `GET /sessions/{id}` and `POST /sessions` return each Session with `game_name`, `summary` ("Won by <winners>") and `details` (one line per item the Session screen shows); unknown ids in an old Result show as is, and a Game the server no longer knows gives the id as `game_name` and empty text.
+- **SES-27** `GET /sessions`, `GET /sessions/{id}` and `POST /sessions` return each Session with `game_name`, `winners` (the names of the winning Players) and `details` (one line per item the Session screen shows); unknown ids in an old Result show as is, and a Game the server no longer knows gives the id as `game_name` and empty `winners` and `details`.
   Tests: integration `record_list_view_and_delete_a_session`; unit `describes_a_result`
 - **SES-28** `POST /games/{id}/check` with `{ players, result }` stores nothing and returns `204` when `POST /sessions` would accept the Result, `422` with the plain-text reason otherwise, `404` for an unknown Game.
   Tests: integration `a_result_can_be_checked_without_storing_it`

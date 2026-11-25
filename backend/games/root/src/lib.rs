@@ -164,9 +164,8 @@ impl Game for Root {
         Ok(())
     }
 
-    fn summary(r: &RootResult) -> String {
-        let winners: Vec<&String> = r.players.iter().filter(|(_, p)| p.winner).map(|(n, _)| n).collect();
-        format!("Won by {}", winners.iter().map(|n| n.as_str()).collect::<Vec<_>>().join(", "))
+    fn winners(r: &RootResult) -> Vec<String> {
+        r.players.iter().filter(|(_, p)| p.winner).map(|(n, _)| n.clone()).collect()
     }
 
     fn details(r: &RootResult) -> Vec<String> {
@@ -216,7 +215,7 @@ mod tests {
             "players": { "Ada": { "faction": "vagabond", "score": 3, "winner": true, "partner": "Bo" }, "Bo": { "faction": "eyrie_dynasties", "score": 20, "winner": true, "partner": null } }
         }))
         .unwrap();
-        assert_eq!(Root::summary(&r), "Won by Ada, Bo");
+        assert_eq!(Root::winners(&r), ["Ada", "Bo"]);
         assert_eq!(
             Root::details(&r),
             ["Autumn map · Standard deck", "Landmarks: Lost City", "Dominance victory", "Ada · Vagabond · 3 · coalition with Bo · winner", "Bo · Eyrie Dynasties · 20 · winner"]

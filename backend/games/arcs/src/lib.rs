@@ -123,9 +123,8 @@ impl Game for Arcs {
         Ok(())
     }
 
-    fn summary(r: &ArcsResult) -> String {
-        let winners: Vec<&str> = r.players.iter().filter(|(_, p)| p.winner).map(|(n, _)| n.as_str()).collect();
-        format!("Won by {}", winners.join(", "))
+    fn winners(r: &ArcsResult) -> Vec<String> {
+        r.players.iter().filter(|(_, p)| p.winner).map(|(n, _)| n.clone()).collect()
     }
 
     fn details(r: &ArcsResult) -> Vec<String> {
@@ -175,7 +174,7 @@ mod tests {
             "players": { "a": { "power": 12, "winner": true, "leader": "elder", "lore": ["tool_priests", "gate_ports"] }, "b": p(9, false) }
         }))
         .unwrap();
-        assert_eq!(Arcs::summary(&r), "Won by a");
+        assert_eq!(Arcs::winners(&r), ["a"]);
         assert_eq!(
             Arcs::details(&r),
             ["Frontiers setup · 2 players · with leaders", "a · 12 power · Elder · Lore: Tool-Priests, Gate Ports · winner", "b · 9 power"]

@@ -8,7 +8,7 @@ jest.mock("expo-router", () => ({
   useFocusEffect: (cb: () => void) => require("react").useEffect(cb, []),
 }));
 
-const root = { id: "s1", game: "root", played_on: "2026-11-20", notes: null, duration_minutes: null, players: ["Ada", "Bo"], game_name: "Root", summary: "Won by Ada", details: [],
+const root = { id: "s1", game: "root", played_on: "2026-11-20", notes: null, duration_minutes: null, players: ["Ada", "Bo"], game_name: "Root", winners: ["Ada"], details: [],
   result: { map: "autumn", deck: "standard", landmarks: [], victory: "points", players: { Ada: { faction: "lizard_cult", score: 30, winner: true, partner: null }, Bo: { faction: "vagabond", score: 3, winner: false, partner: null } } } };
 
 function sessions(list: unknown[]) {
@@ -28,5 +28,8 @@ test("shows the empty state", async () => {
 test("lists recorded sessions with their winners", async () => {
   sessions([root]);
   await render(<Results />);
-  expect(await screen.findByText("2026-11-20 · Root · Won by Ada")).toBeTruthy();
+  expect(await screen.findByLabelText("Root, 2026-11-20, won by Ada")).toBeTruthy();
+  expect(screen.getByText("Root")).toBeTruthy();
+  expect(screen.getByText("2026-11-20")).toBeTruthy();
+  expect(screen.getByText("Ada")).toBeTruthy();
 });
