@@ -159,7 +159,7 @@ test("a Vagabond coalition wins with its partner", async ({ page }) => {
   await expect(page.getByLabel("Player 2 won (with Ada)")).toBeDisabled();
   await next(page);
   await page.getByRole("button", { name: "Save session" }).click();
-  await expect(page.getByText(/· Root · Won by Ada, Bo/)).toBeVisible();
+  await expect(page.getByRole("link", { name: /Root, .*, won by Ada, Bo/ })).toBeVisible();
 });
 
 test("a faction another player holds cannot be picked", async ({ page }) => {
