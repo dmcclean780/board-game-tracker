@@ -13,10 +13,10 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 ## BR-ROOT-002 — One winner plus coalition Vagabonds
 
 - Status: active
-- Rule: Exactly one Player wins in their own right, and any Vagabond in a Coalition with that Player (BR-ROOT-004) wins too, so either victory has one winner plus any Coalition Vagabonds.
+- Rule: Exactly one Player wins in their own right, and any Vagabond in a Coalition chain with that Player (BR-ROOT-004) wins too, so either victory has one winner plus any Coalition Vagabonds.
 - Rationale: Root has a single victor, and a Coalition lets Vagabonds share it.
 - Enforced in: `backend/games/root/src/lib.rs`
-- Tests: `needs_exactly_one_winner`, `two_vagabonds_may_share_a_coalition_partner`
+- Tests: `needs_exactly_one_winner`, `vagabond_chain_shares_the_win`
 
 ## BR-ROOT-003 — Points victory needs 30
 
@@ -29,10 +29,10 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 ## BR-ROOT-004 — Coalition partners
 
 - Status: active
-- Rule: A Coalition may form in a Points or a Dominance victory. Only a faction marked `coalition` in the data file (Vagabond) has a Coalition partner. The partner is another Player in the Session whose faction is not marked `coalition`, and the Vagabond wins exactly when the partner wins. Two Vagabonds may choose the same partner.
-- Rationale: A Vagabond cannot win alone by Coalition and shares the partner's victory.
+- Rule: A Coalition may form in a Points or a Dominance victory. Only a faction marked `coalition` in the data file (Vagabond) has a Coalition partner. The partner is any other Player in the Session, including another Vagabond, and the Vagabond wins exactly when the partner wins, so a chain (VB1 with VB2 with Cats) wins or loses together. A Player is the partner of at most one Vagabond, and Coalitions cannot form a loop. Results saved before this rule are not migrated.
+- Rationale: A Vagabond cannot win alone by Coalition and shares the partner's victory; Vagabonds may join each other, but a Player can only be allied to one.
 - Enforced in: `backend/games/root/src/lib.rs`
-- Tests: `bad_coalitions`, `coalition_in_points_victory`, `two_vagabonds_may_share_a_coalition_partner`
+- Tests: `bad_coalitions`, `coalition_in_points_victory`, `two_vagabonds_cannot_share_a_partner`, `vagabond_chain_shares_the_win`, `vagabond_pair`, `coalition_loop_is_rejected`
 
 ## BR-ROOT-005 — Scores and player list
 

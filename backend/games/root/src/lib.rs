@@ -21,7 +21,7 @@ pub struct Entry {
     /// More than one Player may use it (Vagabond).
     #[serde(default)]
     pub shareable: bool,
-    /// May form a coalition with a Player whose faction cannot.
+    /// May form a coalition with any other Player.
     #[serde(default)]
     pub coalition: bool,
 }
@@ -116,16 +116,33 @@ impl Game for Root {
         // Every faction was found above, so a missing one here cannot happen.
         let can_coalition = |p: &RootPlayer| d.factions.iter().any(|f| f.id == p.faction && f.coalition);
         // A coalition faction with a partner wins or loses together with that partner.
+        let mut partnered = HashSet::new();
         for (name, p) in &r.players {
             let Some(partner) = &p.partner else { continue };
             let q = r.players.get(partner).filter(|_| partner != name);
             match q {
-                Some(q) if can_coalition(p) && !can_coalition(q) => {
+                Some(q) if can_coalition(p) => {
                     if p.winner != q.winner {
                         return Err(format!("{name} and coalition partner {partner} must both win or both lose"));
                     }
                 }
-                _ => return Err(format!("{name}: a coalition needs a Vagabond and another player who is not a Vagabond")),
+                _ => return Err(format!("{name}: a coalition needs a Vagabond and another player")),
+            }
+            if !partnered.insert(partner) {
+                return Err(format!("{partner} is already in a coalition with another Vagabond"));
+            }
+        }
+        // Each player has at most one partner, so a walk that outlasts the players is a loop.
+        for name in r.players.keys() {
+            let mut at = name;
+            for _ in 0..r.players.len() {
+                match &r.players[at].partner {
+                    Some(next) => at = next,
+                    None => break,
+                }
+                if at == name {
+                    return Err("coalitions cannot form a loop".into());
+                }
             }
         }
         let leaders: Vec<&RootPlayer> = r.players.values().filter(|p| p.winner && !(can_coalition(p) && p.partner.is_some())).collect();
@@ -227,10 +244,32 @@ mod tests {
     }
 
     #[test]
-    fn two_vagabonds_may_share_a_coalition_partner() {
+    fn two_vagabonds_cannot_share_a_partner() {
         let vag = |partner: &str| json!({ "faction": "vagabond", "score": 3, "winner": true, "partner": partner });
         let r = json!({ "victory": "dominance", "players": { "a": p("lizard_cult", 9, true), "b": vag("a"), "c": vag("a") } });
-        assert!(check(&["a", "b", "c"], r).is_ok());
+        assert!(check(&["a", "b", "c"], r).is_err());
+    }
+
+    #[test]
+    fn vagabond_chain_shares_the_win() {
+        let vag = |partner: &str, winner: bool| json!({ "faction": "vagabond", "score": 3, "winner": winner, "partner": partner });
+        let r = |c_wins| json!({ "victory": "dominance", "players": { "a": p("lizard_cult", 9, true), "b": vag("a", true), "c": vag("b", c_wins) } });
+        assert!(check(&["a", "b", "c"], r(true)).is_ok());
+        assert!(check(&["a", "b", "c"], r(false)).is_err());
+    }
+
+    #[test]
+    fn vagabond_pair() {
+        let vag = json!({ "faction": "vagabond", "score": 3, "winner": true, "partner": "b" });
+        let r = json!({ "victory": "dominance", "players": { "a": vag, "b": p("vagabond", 5, true) } });
+        assert!(check(&["a", "b"], r).is_ok());
+    }
+
+    #[test]
+    fn coalition_loop_is_rejected() {
+        let vag = |partner: &str| json!({ "faction": "vagabond", "score": 3, "winner": true, "partner": partner });
+        let r = json!({ "victory": "dominance", "players": { "a": vag("b"), "b": vag("a"), "c": p("lizard_cult", 9, false) } });
+        assert!(check(&["a", "b", "c"], r).is_err());
     }
 
     #[test]
@@ -242,7 +281,8 @@ mod tests {
         assert!(check(&["a", "b", "c"], with(true, "a", "vagabond")).is_ok());
         assert!(check(&["a", "b", "c"], with(false, "a", "vagabond")).is_err()); // partner won, Vagabond did not
         assert!(check(&["a", "b", "c"], with(true, "b", "vagabond")).is_err()); // partner is self
-        assert!(check(&["a", "b", "c"], with(true, "c", "vagabond")).is_err()); // partner is a Vagabond
+        assert!(check(&["a", "b", "c"], with(true, "c", "vagabond")).is_err()); // partner c lost, b won
+        assert!(check(&["a", "b", "c"], with(false, "c", "vagabond")).is_ok()); // a Vagabond may partner a Vagabond
         assert!(check(&["a", "b", "c"], with(true, "zed", "vagabond")).is_err()); // partner not in session
         assert!(check(&["a", "b", "c"], with(true, "a", "eyrie_dynasties")).is_err()); // only Vagabonds partner
     }
