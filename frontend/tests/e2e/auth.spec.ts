@@ -177,7 +177,7 @@ test("the form explains what is wrong and blocks going on until it is fixed", as
   await next(page);
   await page.getByLabel("Player 1 name").fill("Ada");
   await page.getByLabel("Player 2 name").fill("Bo");
-  await expect(page.getByText("Tick Won for the player who won.")).toBeVisible();
+  await expect(page.getByText("exactly one player must win")).toBeVisible();
   await expect(page.getByRole("button", { name: "Next" })).toBeDisabled();
   await page.getByLabel("Player 1 won").click();
   await expect(page.getByText(/at least 30 points/)).toBeVisible();

@@ -32,6 +32,17 @@ fn check(game: &str, players: &[String], result: &Value) -> Result<(), String> {
     (g.check)(players, result)
 }
 
+/// The Game's name and the text the app shows for a Result; the app has no Game-specific code.
+fn describe_game(game: &str, result: &Value) -> (String, String, Vec<String>) {
+    match registry().iter().find(|g| g.id == game) {
+        Some(g) => {
+            let (summary, details) = (g.describe)(result).unwrap_or_default();
+            (g.name.into(), summary, details)
+        }
+        None => (game.into(), String::new(), Vec::new()),
+    }
+}
+
 #[derive(Serialize, FromRow, ToSchema)]
 pub struct Session {
     pub id: Uuid,
@@ -43,6 +54,29 @@ pub struct Session {
     /// The Game's own Result format; see the Game's business rules.
     pub result: Value,
     pub created_at: DateTime<Utc>,
+    /// The Game's display name.
+    #[sqlx(skip)]
+    pub game_name: String,
+    /// One line for the Results list, e.g. "Won by Ada".
+    #[sqlx(skip)]
+    pub summary: String,
+    /// The lines the Session screen shows for the Result.
+    #[sqlx(skip)]
+    pub details: Vec<String>,
+}
+
+impl Session {
+    fn described(mut self) -> Self {
+        (self.game_name, self.summary, self.details) = describe_game(&self.game, &self.result);
+        self
+    }
+}
+
+/// A Result checked without being stored: the app asks as the form is filled in.
+#[derive(Deserialize, ToSchema)]
+pub struct CheckSession {
+    pub players: Vec<String>,
+    pub result: Value,
 }
 
 #[derive(Deserialize, ToSchema)]
@@ -71,6 +105,13 @@ pub async fn get_game(_: AuthUser, Path(id): Path<String>) -> Result<Json<Value>
     registry().iter().find(|g| g.id == id).map(|g| Json((g.data)())).ok_or(StatusCode::NOT_FOUND)
 }
 
+/// Check a Result against a Game's rules without storing it: `204` if it would be accepted, else `422` with the reason.
+#[utoipa::path(post, path = "/games/{id}/check", params(("id" = String, Path)), request_body = CheckSession, responses((status = 204), (status = 401), (status = 404), (status = 422, body = String)))]
+pub async fn check_game(_: AuthUser, Path(id): Path<String>, Json(c): Json<CheckSession>) -> Result<StatusCode, (StatusCode, String)> {
+    let g = registry().iter().find(|g| g.id == id).ok_or((StatusCode::NOT_FOUND, String::new()))?;
+    (g.check)(&c.players, &c.result).map(|_| StatusCode::NO_CONTENT).map_err(|m| (StatusCode::UNPROCESSABLE_ENTITY, m))
+}
+
 /// Record a Session; the Result is checked against the Game's rules.
 #[utoipa::path(post, path = "/sessions", request_body = NewSession, responses((status = 201, body = Session), (status = 401), (status = 422, body = String)))]
 pub async fn create_session(State(s): State<AppState>, u: AuthUser, Json(n): Json<NewSession>) -> Result<(StatusCode, Json<Session>), (StatusCode, String)> {
@@ -93,30 +134,30 @@ pub async fn create_session(State(s): State<AppState>, u: AuthUser, Json(n): Jso
     .fetch_one(&s.db)
     .await
     .map_err(|_| (ERR, String::new()))?;
-    Ok((StatusCode::CREATED, Json(row)))
+    Ok((StatusCode::CREATED, Json(Session::described(row))))
 }
 
 /// The signed-in User's Sessions, newest play date first.
 #[utoipa::path(get, path = "/sessions", responses((status = 200, body = Vec<Session>), (status = 401)))]
 pub async fn list_sessions(State(s): State<AppState>, u: AuthUser) -> Result<Json<Vec<Session>>, StatusCode> {
-    sqlx::query_as(&format!("SELECT {COLUMNS} FROM sessions WHERE owner_id = $1 ORDER BY played_on DESC, created_at DESC"))
+    sqlx::query_as::<_, Session>(&format!("SELECT {COLUMNS} FROM sessions WHERE owner_id = $1 ORDER BY played_on DESC, created_at DESC"))
         .bind(u.id)
         .fetch_all(&s.db)
         .await
-        .map(Json)
+        .map(|rows| Json(rows.into_iter().map(Session::described).collect()))
         .map_err(|_| ERR)
 }
 
 /// One Session; 404 if it is not the signed-in User's.
 #[utoipa::path(get, path = "/sessions/{id}", params(("id" = Uuid, Path)), responses((status = 200, body = Session), (status = 401), (status = 404)))]
 pub async fn get_session(State(s): State<AppState>, u: AuthUser, Path(id): Path<Uuid>) -> Result<Json<Session>, StatusCode> {
-    sqlx::query_as(&format!("SELECT {COLUMNS} FROM sessions WHERE id = $1 AND owner_id = $2"))
+    sqlx::query_as::<_, Session>(&format!("SELECT {COLUMNS} FROM sessions WHERE id = $1 AND owner_id = $2"))
         .bind(id)
         .bind(u.id)
         .fetch_optional(&s.db)
         .await
         .map_err(|_| ERR)?
-        .map(Json)
+        .map(|r| Json(r.described()))
         .ok_or(StatusCode::NOT_FOUND)
 }
 

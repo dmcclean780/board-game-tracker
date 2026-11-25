@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, useAuth } from "../auth";
 
 /** An option in a Game's data file (backend/games/<game>/data.json). */
-export type Entry = { id: string; label: string; expansion?: string; retired?: boolean; shareable?: boolean; coalition?: boolean };
+export type Entry = { id: string; label: string; expansion?: string; retired?: boolean; shareable?: boolean; coalition?: boolean; players?: number };
 
 const cache: Record<string, unknown> = {};
 

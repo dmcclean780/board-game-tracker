@@ -199,6 +199,7 @@ async fn a_games_data_is_served_to_signed_in_users() {
     assert_eq!(status, StatusCode::OK);
     let v: serde_json::Value = serde_json::from_str(&body).unwrap();
     assert_eq!(v["rules"]["points_to_win"], 30);
+    assert_eq!(v["form"]["max_players"], 6);
     assert!(v["factions"].as_array().unwrap().iter().any(|f| f["id"] == "vagabond" && f["coalition"] == true));
     let (status, body) = call(&pool, "GET", "/games/arcs", Some(&t)).await;
     assert_eq!(status, StatusCode::OK);
@@ -206,6 +207,22 @@ async fn a_games_data_is_served_to_signed_in_users() {
     assert!(v["setups"].as_array().unwrap().iter().any(|s| s["id"] == "2p_frontiers" && s["players"] == 2));
     assert_eq!(call(&pool, "GET", "/games/chess", Some(&t)).await.0, StatusCode::NOT_FOUND);
     assert_eq!(call(&pool, "GET", "/games/root", None).await.0, StatusCode::UNAUTHORIZED);
+}
+
+#[tokio::test]
+async fn a_result_can_be_checked_without_storing_it() {
+    let (pool, _node) = db().await;
+    let t = token(Uuid::new_v4(), "ada@x.com", None);
+    call(&pool, "GET", "/me", Some(&t)).await;
+    let ok = serde_json::json!({ "players": root_session()["players"], "result": root_session()["result"] });
+    assert_eq!(send(&pool, "POST", "/games/root/check", &t, ok.clone()).await.0, StatusCode::NO_CONTENT);
+    let mut bad = ok;
+    bad["result"]["players"]["Ada"]["score"] = 5.into();
+    let (status, body) = send(&pool, "POST", "/games/root/check", &t, bad.clone()).await;
+    assert_eq!((status, body.as_str()), (StatusCode::UNPROCESSABLE_ENTITY, "a points victory needs at least 30 points"));
+    assert_eq!(send(&pool, "POST", "/games/chess/check", &t, bad).await.0, StatusCode::NOT_FOUND);
+    let (_, list) = call(&pool, "GET", "/sessions", Some(&t)).await;
+    assert_eq!(list, "[]");
 }
 
 #[tokio::test]
@@ -227,6 +244,10 @@ async fn record_list_view_and_delete_a_session() {
     let (status, body) = call(&pool, "GET", &format!("/sessions/{id}"), Some(&t)).await;
     assert_eq!(status, StatusCode::OK);
     assert!(body.contains(r#""played_on":"2026-11-20""#) && body.contains("marquise_de_cat"), "{body}");
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["game_name"], "Root");
+    assert_eq!(v["summary"], "Won by Ada");
+    assert_eq!(v["details"][0], "Autumn map · Standard deck");
     assert_eq!(call(&pool, "DELETE", &format!("/sessions/{id}"), Some(&t)).await.0, StatusCode::NO_CONTENT);
     assert_eq!(call(&pool, "GET", &format!("/sessions/{id}"), Some(&t)).await.0, StatusCode::NOT_FOUND);
     assert_eq!(call(&pool, "DELETE", &format!("/sessions/{id}"), Some(&t)).await.0, StatusCode::NOT_FOUND);

@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { api, useAuth } from "../../../auth";
 import { Button, Message, Screen, Text } from "../../../components/ui";
-import { games, Session } from "../../../games";
+import type { Session } from "../../../games";
 
 export default function SessionDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -24,11 +24,10 @@ export default function SessionDetail() {
     else setError("Could not delete the session. Try again.");
   }
 
-  const def = s && games[s.game];
   return (
     <Screen>
-      {s && <Text>{def?.name ?? s.game} · {s.played_on}</Text>}
-      {s && def && <def.Detail session={s} />}
+      {s && <Text>{s.game_name} · {s.played_on}</Text>}
+      {s?.details.map((line) => <Text key={line}>{line}</Text>)}
       {s?.duration_minutes ? <Text>{s.duration_minutes} minutes</Text> : null}
       {s?.notes ? <Text>{s.notes}</Text> : null}
       <Message error text={error} />

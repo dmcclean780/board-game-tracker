@@ -41,6 +41,7 @@ pub struct RootData {
     pub maps: Vec<Entry>,
     pub decks: Vec<Entry>,
     pub landmarks: Vec<Entry>,
+    pub form: bgt_games::Form,
 }
 
 fn data() -> &'static RootData {
@@ -52,6 +53,11 @@ fn data() -> &'static RootData {
 const POINTS: &str = "points";
 #[cfg(test)]
 const DOMINANCE: &str = "dominance";
+
+/// The label for an id; an id no longer in the data shows as is.
+fn label(list: &[Entry], id: &str) -> String {
+    list.iter().find(|e| e.id == id).map_or(id, |e| &e.label).to_owned()
+}
 
 /// An id that exists in the list and is not retired.
 fn find<'a>(list: &'a [Entry], kind: &str, id: &str) -> Result<&'a Entry, String> {
@@ -157,6 +163,26 @@ impl Game for Root {
         }
         Ok(())
     }
+
+    fn summary(r: &RootResult) -> String {
+        let winners: Vec<&String> = r.players.iter().filter(|(_, p)| p.winner).map(|(n, _)| n).collect();
+        format!("Won by {}", winners.iter().map(|n| n.as_str()).collect::<Vec<_>>().join(", "))
+    }
+
+    fn details(r: &RootResult) -> Vec<String> {
+        let d = data();
+        let mut lines = vec![format!("{} map · {} deck", label(&d.maps, &r.map), label(&d.decks, &r.deck))];
+        if !r.landmarks.is_empty() {
+            lines.push(format!("Landmarks: {}", r.landmarks.iter().map(|l| label(&d.landmarks, l)).collect::<Vec<_>>().join(", ")));
+        }
+        lines.push(format!("{} victory", label(&d.victories, &r.victory)));
+        for (name, p) in &r.players {
+            let partner = p.partner.as_ref().map(|x| format!(" · coalition with {x}")).unwrap_or_default();
+            let won = if p.winner { " · winner" } else { "" };
+            lines.push(format!("{name} · {} · {}{partner}{won}", label(&d.factions, &p.faction), p.score));
+        }
+        lines
+    }
 }
 
 #[cfg(test)]
@@ -176,6 +202,25 @@ mod tests {
 
     fn p(faction: &str, score: i32, winner: bool) -> Value {
         json!({ "faction": faction, "score": score, "winner": winner })
+    }
+
+    #[test]
+    fn form_is_well_formed() {
+        bgt_games::check_form::<Root>();
+    }
+
+    #[test]
+    fn describes_a_coalition_win() {
+        let r: RootResult = serde_json::from_value(json!({
+            "map": "autumn", "deck": "standard", "landmarks": ["lost_city"], "victory": "dominance",
+            "players": { "Ada": { "faction": "vagabond", "score": 3, "winner": true, "partner": "Bo" }, "Bo": { "faction": "eyrie_dynasties", "score": 20, "winner": true, "partner": null } }
+        }))
+        .unwrap();
+        assert_eq!(Root::summary(&r), "Won by Ada, Bo");
+        assert_eq!(
+            Root::details(&r),
+            ["Autumn map · Standard deck", "Landmarks: Lost City", "Dominance victory", "Ada · Vagabond · 3 · coalition with Bo · winner", "Bo · Eyrie Dynasties · 20 · winner"]
+        );
     }
 
     #[test]

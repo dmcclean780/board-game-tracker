@@ -42,5 +42,20 @@
     {"id": "rabbittown", "label": "Rabbittown", "expansion": "homeland"},
     {"id": "the_ferry", "label": "The Ferry", "expansion": "landmarks"},
     {"id": "the_tower", "label": "The Tower", "expansion": "landmarks"}
-  ]
+  ],
+  "form": {
+    "min_players": 1, "max_players": 6, "default_players": 2,
+    "setup": [
+      {"key": "map", "label": "Map", "type": "select", "options": "maps"},
+      {"key": "deck", "label": "Deck", "type": "select", "options": "decks"},
+      {"key": "landmarks", "label": "Landmarks", "type": "multi", "options": "landmarks"},
+      {"key": "victory", "label": "Win condition", "type": "choice", "options": "victories"}
+    ],
+    "player": [
+      {"key": "winner", "label": "won", "type": "winner"},
+      {"key": "faction", "label": "faction", "type": "select", "options": "factions", "unique": true},
+      {"key": "score", "label": "score", "type": "number"},
+      {"key": "partner", "label": "coalition with", "type": "player", "via": "faction", "when_flag": "coalition", "shares": "winner"}
+    ]
+  }
 }
