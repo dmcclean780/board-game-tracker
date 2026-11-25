@@ -82,4 +82,4 @@ Editing a Session; linking Players to Users and sharing Sessions; other Games (A
 
 ## Code
 
-`backend/src/sessions.rs`, `backend/games/core`, `backend/games/root`, `backend/games/arcs` and `backend/games/old-kings-crown` (rules in `src/lib.rs`, options in `data.json`), `db/migrations/0003_sessions.sql`, `frontend/src/games/`, `frontend/src/app/(app)/results.tsx`, `frontend/src/app/(app)/sessions/`.
+`backend/src/sessions.rs`, `backend/build.rs` (registers every crate in `backend/games/`), `backend/games/core`, `backend/games/root`, `backend/games/arcs` and `backend/games/old-kings-crown` (rules in `src/lib.rs`, options in `data.json`), `db/migrations/0003_sessions.sql`, `frontend/src/games/`, `frontend/src/app/(app)/results.tsx`, `frontend/src/app/(app)/sessions/`.

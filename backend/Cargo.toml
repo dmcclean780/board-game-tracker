@@ -1,5 +1,5 @@
 [workspace]
-members = [".", "games/core", "games/root", "games/arcs", "games/old-kings-crown"]
+members = [".", "games/*"]
 
 [package]
 name = "bgt-backend"
@@ -11,6 +11,7 @@ axum = "0.8"
 tokio = { version = "1", features = ["macros", "rt-multi-thread", "net"] }
 sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "migrate", "uuid", "chrono", "json"] }
 bgt-games = { path = "games/core" }
+# A new Game: its crate under games/ (package bgt-game-<dir>, exporting `Plugin`) plus its line here.
 bgt-game-root = { path = "games/root" }
 bgt-game-arcs = { path = "games/arcs" }
 bgt-game-old-kings-crown = { path = "games/old-kings-crown" }

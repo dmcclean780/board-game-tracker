@@ -82,6 +82,9 @@ pub struct RootResult {
 
 pub struct Root;
 
+/// What the app registers: `build.rs` finds every crate in `games/` and uses this.
+pub type Plugin = Root;
+
 impl Game for Root {
     const ID: &'static str = "root";
     const NAME: &'static str = "Root";
