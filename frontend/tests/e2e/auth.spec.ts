@@ -186,7 +186,7 @@ test("the form explains what is wrong and blocks going on until it is fixed", as
   await page.getByLabel("Player 2 score").fill("30");
   await expect(page.getByRole("button", { name: "Next" })).toBeEnabled();
   await page.getByLabel("Player 2 faction").selectOption("vagabond");
-  await expect(page.getByLabel("Player 2 coalition with")).toHaveCount(0); // only in a dominance victory
+  await expect(page.getByLabel("Player 2 coalition with")).toBeVisible(); // in a points victory too
   await page.getByRole("button", { name: "Back" }).click(); // the setup is kept when moving between steps
   await page.getByRole("button", { name: "Next" }).click();
   await expect(page.getByLabel("Player 1 name")).toHaveValue("Ada");
