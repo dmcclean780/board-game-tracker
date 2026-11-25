@@ -60,5 +60,18 @@
     {"id": "tyrants_authority", "label": "Tyrant's Authority", "expansion": "leaders_and_lore"},
     {"id": "tycoons_ambition", "label": "Tycoon's Ambition", "expansion": "leaders_and_lore"},
     {"id": "tycoons_charm", "label": "Tycoon's Charm", "expansion": "leaders_and_lore"}
-  ]
+  ],
+  "form": {
+    "min_players": 2, "max_players": 4, "default_players": 2,
+    "setup": [
+      {"key": "setup", "label": "Setup card", "type": "select", "options": "setups", "filter_by_players": true},
+      {"key": "leaders", "label": "Play with leaders", "type": "checkbox"}
+    ],
+    "player": [
+      {"key": "winner", "label": "won", "type": "winner"},
+      {"key": "power", "label": "power", "type": "number"},
+      {"key": "leader", "label": "leader", "type": "select", "options": "leaders", "unique": true, "blank": "Choose a leader", "when": "leaders"},
+      {"key": "lore", "label": "lore", "type": "repeat", "options": "lore", "unique": true}
+    ]
+  }
 }

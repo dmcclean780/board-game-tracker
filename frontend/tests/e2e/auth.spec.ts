@@ -118,8 +118,8 @@ test("record a Root session, view it and delete it", async ({ page }) => {
   await signUpAndVerify(page, uniqueEmail());
   await expect(page.getByText("No sessions yet.")).toBeVisible();
   await page.getByRole("button", { name: "Record session" }).click();
+  await page.getByLabel("Game", { exact: true }).selectOption("root");
   await expect(page.getByText("Step 1 of 4")).toBeVisible();
-  await expect(page.getByLabel("Game")).toHaveValue("root");
   await next(page);
   await expect(page.getByRole("heading", { name: "Setup" })).toBeVisible();
   await page.getByLabel("Map").selectOption("marsh");
@@ -147,6 +147,7 @@ test("record a Root session, view it and delete it", async ({ page }) => {
 test("a Vagabond coalition wins with its partner", async ({ page }) => {
   await signUpAndVerify(page, uniqueEmail());
   await page.getByRole("button", { name: "Record session" }).click();
+  await page.getByLabel("Game", { exact: true }).selectOption("root");
   await next(page);
   await page.getByLabel("Dominance").click();
   await next(page);
@@ -164,6 +165,7 @@ test("a Vagabond coalition wins with its partner", async ({ page }) => {
 test("a faction another player holds cannot be picked", async ({ page }) => {
   await signUpAndVerify(page, uniqueEmail());
   await page.getByRole("button", { name: "Record session" }).click();
+  await page.getByLabel("Game", { exact: true }).selectOption("root");
   await next(page);
   await next(page);
   await expect(page.getByLabel("Player 2 faction").locator("option", { hasText: "Marquise de Cat (taken)" })).toBeDisabled();
@@ -173,11 +175,12 @@ test("a faction another player holds cannot be picked", async ({ page }) => {
 test("the form explains what is wrong and blocks going on until it is fixed", async ({ page }) => {
   await signUpAndVerify(page, uniqueEmail());
   await page.getByRole("button", { name: "Record session" }).click();
+  await page.getByLabel("Game", { exact: true }).selectOption("root");
   await next(page);
   await next(page);
   await page.getByLabel("Player 1 name").fill("Ada");
   await page.getByLabel("Player 2 name").fill("Bo");
-  await expect(page.getByText("Tick Won for the player who won.")).toBeVisible();
+  await expect(page.getByText("exactly one player must win")).toBeVisible();
   await expect(page.getByRole("button", { name: "Next" })).toBeDisabled();
   await page.getByLabel("Player 1 won").click();
   await expect(page.getByText(/at least 30 points/)).toBeVisible();

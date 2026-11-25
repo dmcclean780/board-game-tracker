@@ -15,7 +15,7 @@ pub struct Health {
 }
 
 #[derive(OpenApi)]
-#[openapi(paths(health, users::me, users::delete_me, users::update_me, users::restore_me, sessions::list_games, sessions::get_game, sessions::create_session, sessions::list_sessions, sessions::get_session, sessions::delete_session), components(schemas(Health, users::Me, users::UpdateMe, sessions::GameInfo, sessions::Session, sessions::NewSession)))]
+#[openapi(paths(health, users::me, users::delete_me, users::update_me, users::restore_me, sessions::list_games, sessions::get_game, sessions::check_game, sessions::create_session, sessions::list_sessions, sessions::get_session, sessions::delete_session), components(schemas(Health, users::Me, users::UpdateMe, sessions::GameInfo, sessions::Session, sessions::NewSession, sessions::CheckSession)))]
 pub struct ApiDoc;
 
 /// Liveness plus database connectivity check.
@@ -37,6 +37,7 @@ pub fn app(state: AppState) -> Router {
         .route("/me/restore", post(users::restore_me))
         .route("/games", get(sessions::list_games))
         .route("/games/{id}", get(sessions::get_game))
+        .route("/games/{id}/check", post(sessions::check_game))
         .route("/sessions", get(sessions::list_sessions).post(sessions::create_session))
         .route("/sessions/{id}", get(sessions::get_session).delete(sessions::delete_session))
         // shortcut: any origin is fine for bearer-token auth; restrict to the app's origin once deployment (ADR 0009) is decided.

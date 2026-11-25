@@ -1,6 +1,6 @@
 # Sessions
 
-Status: implemented, web only. Decisions: [ADR 0016](../adr/0016-session-results-jsonb-per-game-crates.md), [ADR 0017](../adr/0017-game-data-in-json-files.md). Rules: [Root results](../business-rules/root-results.md), [Arcs results](../business-rules/arcs-results.md), [Old King's Crown results](../business-rules/old-kings-crown-results.md). Terms: Game, Session, Player, Result ([glossary](../../GLOSSARY.md)).
+Status: implemented, web only. Decisions: [ADR 0016](../adr/0016-session-results-jsonb-per-game-crates.md), [ADR 0017](../adr/0017-game-data-in-json-files.md), [ADR 0018](../adr/0018-server-driven-game-forms.md). Rules: [Root results](../business-rules/root-results.md), [Arcs results](../business-rules/arcs-results.md), [Old King's Crown results](../business-rules/old-kings-crown-results.md). Terms: Game, Session, Player, Result ([glossary](../../GLOSSARY.md)).
 
 ## Purpose
 
@@ -12,10 +12,10 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
 
 - **SES-1** `GET /games` returns the Games that can be recorded, as `[{ id, name }]`; today Root, Arcs and Old King's Crown (`old-kings-crown`).
   Tests: integration `games_lists_every_game`
-- **SES-17** `GET /games/{id}` returns the Game's data file as JSON (for Root: `rules`, `victories`, `factions`, `maps`, `decks`, `landmarks`; for Arcs: `setups`, `leaders`, `lore`; for Old King's Crown: `houses`), `404` for an unknown Game.
-  Tests: integration `a_games_data_is_served_to_signed_in_users`; unit `serves_the_games_data`, `data_file_is_well_formed`
-- **SES-18** The Root form builds its Map, Deck, Landmark, Faction and win-condition options from that data, hides entries marked `retired`, uses the data's `shareable` and `coalition` flags and `points_to_win`, and shows "Loading Root options…" until the data arrives. The Session screen labels ids from the data and shows an id as is when it is no longer in the data.
-  Tests: jest `options come from the data file: a new entry appears and a retired one does not`, `the points target and the faction flags come from the data`, `waits for the game's data before showing the form`
+- **SES-17** `GET /games/{id}` returns the Game's data file as JSON (for Root: `rules`, `victories`, `factions`, `maps`, `decks`, `landmarks`; for Arcs: `setups`, `leaders`, `lore`; for Old King's Crown: `houses`; for every Game also `form`, which describes the Game's Setup and Players screens, see SES-18), `404` for an unknown Game.
+  Tests: integration `a_games_data_is_served_to_signed_in_users`; unit `serves_the_games_data`, `data_file_is_well_formed`, `form_is_well_formed` (each Game)
+- **SES-18** The app has no Game-specific code. The Setup and Players screens are built from the Game's `form`: a "Number of players" dropdown from `min_players` to `max_players` (starting at `default_players`), the Game's `setup` fields once, and for every Player a name and the `player` fields, each labelled "Player n <label>". Field types are `select` (dropdown over a data list, `retired` entries hidden, `filter_by_players` keeps entries whose `players` equals the player count and falls back to the first), `multi` (a checkbox per entry), `choice` (checkboxes of which exactly one is ticked), `checkbox`, `number`, `winner`, `repeat` and `player` (SES-29 to SES-31). A field with `when` is shown, and sent, only while that setup checkbox is ticked, and is sent as `null` otherwise. "Loading options…" shows until the data arrives. Lowering and raising the player count keeps what was typed.
+  Tests: jest `GameForm.test.tsx` `builds the players and Result from the schema, and reports them once the server accepts`, `lists come from the data: boards follow the player count, retired entries are hidden`, `setup: multi boxes, one-of-many choice and a checkbox that reveals a player field`
 - **SES-19** A new Session is rejected with `422` when its map, deck, victory, landmark or faction is not in the data file or is `retired`.
   Tests: unit `map_deck_and_landmarks`, `retired_entries_are_rejected_for_new_sessions`
 - **SES-2** `POST /sessions` with `{ game, played_on?, notes?, duration_minutes?, players, result }` stores the Session for the caller and returns `201` with it.
@@ -32,43 +32,55 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
   Tests: integration `sessions_are_private_to_their_recorder`, `record_list_view_and_delete_a_session`
 - **SES-8** Deleting a User row (the purge, [ACC-8](accounts.md)) deletes their Sessions.
   Tests: integration `purging_a_user_removes_their_sessions`
-- **SES-9** The Results screen lists the User's Sessions as "<date> · <game> · Won by <winners>", or "No sessions yet.", and opens one when pressed.
+- **SES-9** The Results screen lists the User's Sessions as "<date> · <game name> · <summary>" (for every Game the summary is "Won by <winners>"), or "No sessions yet.", and opens one when pressed. The game name and summary come from the server (SES-27).
   Tests: jest `lists recorded sessions with their winners`, `greets the user and shows the empty state`; e2e `record a Root session, view it and delete it`
-- **SES-10** "Record session" opens a four-screen flow, shown as "Step n of 4", with "Next" and "Back" buttons ("Cancel" on the first): Session, Setup, Players, Save. Session has a Game dropdown (always shown, even with one Game), the play date (the browser's date input on web) and optional duration. Setup and Players belong to the Game. Save shows a summary, the optional notes and "Save session", which sends it and returns home; a `422` reason is shown as an error. Nothing typed is lost when moving between screens.
-  Tests: e2e `record a Root session, view it and delete it`; jest `shows one step at a time and keeps what was typed between steps`
-- **SES-11** For Root, the Setup screen has a "Setup" section with a Map dropdown, a Deck dropdown (defaults Autumn and Standard) and Landmark checkboxes (any number), and a "Win condition" section with "30 Points" and "Dominance" checkboxes: one is always ticked, ticking one unticks the other, and "30 Points" is the default. The Players screen has one card per Player with a name, a "won" checkbox, a faction dropdown and a score, and a "Remove player" button on each card. A new Player starts on a faction no other Player holds. The options come from the Game's data file (SES-18).
-  Tests: jest `reports players and a points Result once the form is valid`, `a dominance victory needs no points`, `reports the map, deck and any number of landmarks`, `30 Points and Dominance exclude each other, and one is always chosen`, `offers the Exiles and Partisans deck and the Homeland options`; e2e `record a Root session, view it and delete it`
-- **SES-15** Ticking one Player's "won" box clears everyone else's, so only one Player wins in their own right.
-  Tests: jest `only one player can be marked as having won`; e2e `the form explains what is wrong and blocks going on until it is fixed`
-- **SES-16** The Players screen shows the first rule the Session breaks and disables "Next" (so the Session cannot be saved) until none is broken: every Player has a different name, exactly one Player won, a Points victory has a winner with at least 30 points, and no score is negative.
-  Tests: jest `explains what is wrong and reports nothing until it is fixed`; e2e `the form explains what is wrong and blocks going on until it is fixed`
-- **SES-13** In the faction dropdown, a faction held by another Player is shown as "<faction> (taken)" and cannot be picked; Vagabond is never taken.
-  Tests: jest `a faction held by another player cannot be picked, except Vagabond`; e2e `a faction another player holds cannot be picked`
-- **SES-14** The "coalition with" dropdown appears only for a Vagabond Player, in either win condition, listing "Nobody" and the other Players, except any already partnered by another Vagabond and any that would make a loop. With a partner, the Vagabond's won checkbox is disabled, reads "won (with <partner>)" and follows the partner's; the link survives renaming the partner, and is dropped if either Player's faction changes so it is no longer valid.
-  Tests: jest `coalitions exist only for a Vagabond, in either win condition`, `a Vagabond coalition wins a points victory with a partner on 30`, `a coalition Vagabond wins with their partner, and keeps them when renamed`, `leaving Vagabond drops the coalition, switching win condition keeps it`, `a Vagabond can partner another Vagabond, and the chain wins together`, `a player already in a coalition with a Vagabond is not offered to another`, `choosing a partner cannot make a loop`; e2e `a Vagabond coalition wins with its partner`
-- **SES-12** A Session screen shows the date, Game, Result (for Root: map, deck, landmarks, victory and each Player), duration and notes; "Delete session" asks for confirmation, then deletes and returns home.
+- **SES-10** "Record session" opens a four-screen flow, shown as "Step n of 4", with "Next" and "Back" buttons ("Cancel" on the first): Session, Setup, Players, Save. Session has a Game dropdown listing the Games from `GET /games` (always shown, even with one Game), the play date (the browser's date input on web) and optional duration. Setup and Players are built from the Game's form (SES-18). Save shows a summary, the optional notes and "Save session", which sends it and returns home; a `422` reason is shown as an error. Nothing typed is lost when moving between screens.
   Tests: e2e `record a Root session, view it and delete it`
+- **SES-11** `removed`: now SES-18 (Root's Setup screen is its `form`: Map, Deck, Landmarks and the Win condition choice, "30 Points" the default).
+  Tests: none
+- **SES-15** Ticking one Player's `winner` box clears everyone else's, so only one Player wins in their own right.
+  Tests: jest `GameForm.test.tsx` `only one player wins`; e2e `the form explains what is wrong and blocks going on until it is fixed`
+- **SES-16** `removed`: now SES-32 (the server's rules are shown, not a copy of them).
+  Tests: none
+- **SES-13** A `select` or `repeat` field marked `unique` shows an entry another Player holds as "<label> (taken)" and cannot pick it, unless the entry is `shareable` (Vagabond); a new Player starts on the first free entry, and `repeat` (Arcs lore) adds the first free entry with an "Add <label> for player n" button and a "Remove" button on each.
+  Tests: jest `GameForm.test.tsx` `a unique option held by another player is marked taken, but a shareable one is not`, `repeat adds the first free entry, never one another player holds, and removes`; e2e `a faction another player holds cannot be picked`
+- **SES-14** A `player` field (Root's "coalition with") appears only for a Player whose option in its `via` field has the flag `when_flag`, lists "Nobody" and the other Players, except any already partnered by another Player and any that would make a loop, and is sent as the partner's name or `null`. With a partner, the Player's `shares` field (their `winner` box) is disabled, reads "won (with <partner>)" and follows the partner's (so a chain of partners wins together); the link survives renaming the partner and is dropped when it stops being valid.
+  Tests: jest `GameForm.test.tsx` `a linked player shares the partner's win, and the link drops when it stops being valid`, `a partner may itself be linked, and the whole chain wins together`; e2e `a Vagabond coalition wins with its partner`
+- **SES-12** A Session screen shows the game name and date, then the lines the server wrote for the Result (SES-27), then duration and notes. For Root the lines are the map and deck, landmarks, victory and each Player (faction, score, coalition partner, winner mark); "Delete session" asks for confirmation, then deletes and returns home.
+  Tests: integration `record_list_view_and_delete_a_session`; unit `describes_a_coalition_win` (Root); e2e `record a Root session, view it and delete it`
 
 - **SES-20** `POST /sessions` for Arcs is accepted only when its Result meets BR-ARCS-001 to BR-ARCS-004, and is rejected with `422` otherwise, naming the broken rule.
   Tests: integration `an_arcs_session_is_recorded_and_checked`; unit in `backend/games/arcs` (`a_plain_session_passes`, `needs_two_to_four_players`, `setup_must_exist_and_match_the_player_count`, `needs_exactly_one_winner_with_the_most_power`, `power_is_not_negative_and_players_must_match`, `leaders_are_all_or_none_and_unique`, `lore_is_optional_any_number_and_unique`, `data_file_is_well_formed`)
-- **SES-21** For Arcs, the Setup screen has a "Number of players" dropdown (2 to 4, default 2), a "Setup card" dropdown listing only the cards for that number of players, and a "Play with leaders" checkbox (off by default). Changing the number of players picks the first card for that number if the chosen card is for another number. Options come from the Game's data file and hide `retired` entries; "Loading Arcs options…" shows until it arrives.
-  Tests: jest `the setup cards follow the number of players`, `reports the players and a Result once the form is valid`
-- **SES-22** For Arcs, the Players screen has one card per Player (as many as the number of players) with a name, a "won" checkbox, a power, a leader dropdown only when "Play with leaders" is ticked, and lore dropdowns. A card held by another Player is shown as "<card> (taken)" and cannot be picked. "Add lore for player n" adds a dropdown for the first free lore card and each has a "Remove" button. Ticking one "won" box clears the others. Next stays disabled until the Session meets BR-ARCS-001 to BR-ARCS-004, and the first broken rule is shown. Lowering the number of players and raising it again keeps what was typed.
-  Tests: jest `explains what is wrong, including a winner with less power`, `leaders are all or none, and one player holds each`, `a player can add and remove any number of lore cards, and each is held once`
-- **SES-23** An Arcs Session screen shows the setup card, the number of players, whether leaders were used, and each Player's power, leader, lore and winner mark; the Results list shows "Won by <winner>".
+- **SES-21** `removed`: now SES-18 (Arcs: setup cards by player count, "Play with leaders" checkbox).
   Tests: none
+- **SES-22** `removed`: now SES-13, SES-15 and SES-18 (Arcs: power, leader when leaders are on, lore).
+  Tests: none
+- **SES-23** An Arcs Session screen shows the setup card, the number of players, whether leaders were used, and each Player's power, leader, lore and winner mark; the Results list shows "Won by <winner>".
+  Tests: unit `describes_a_session` (Arcs)
 - **SES-24** `POST /sessions` for Old King's Crown is accepted only when its Result meets BR-OKC-001 and BR-OKC-002, and is rejected with `422` otherwise, naming the broken rule.
   Tests: integration `an_old_kings_crown_session_is_recorded_and_checked`; unit in `backend/games/old-kings-crown` (`a_plain_session_passes`, `needs_one_to_four_players`, `houses_must_exist_and_be_unique`, `needs_exactly_one_winner_with_the_top_score`, `score_is_not_negative_and_players_must_match`, `data_file_is_well_formed`)
-- **SES-25** For Old King's Crown, the Setup screen has a "Number of players" dropdown (1 to 4, default 2). The Players screen has one card per Player with a name, a "won" checkbox, a house dropdown and a score. A house held by another Player is shown as "<house> (taken)" and cannot be picked. Ticking one "won" box clears the others. Next stays disabled until the Session meets BR-OKC-001 and BR-OKC-002, and the first broken rule is shown. Options come from the Game's data file and hide `retired` entries; "Loading Old King's Crown options…" shows until it arrives.
-  Tests: jest in `OldKingsCrownForm.test.tsx` (`reports the players and a Result once the form is valid`, `explains what is wrong, including a winner with a lower score`, `a house another player holds cannot be picked`, `one player is enough, and the player count follows the dropdown`)
-- **SES-26** An Old King's Crown Session screen shows each Player's house, score and winner mark; the Results list shows "Won by <winner>".
+- **SES-25** `removed`: now SES-18 (Old King's Crown: 1 to 4 players, house and score).
   Tests: none
+- **SES-26** An Old King's Crown Session screen shows each Player's house, score and winner mark; the Results list shows "Won by <winner>".
+  Tests: unit `describes_a_session` (Old King's Crown)
+- **SES-27** `GET /sessions`, `GET /sessions/{id}` and `POST /sessions` return each Session with `game_name`, `summary` ("Won by <winners>") and `details` (one line per item the Session screen shows); unknown ids in an old Result show as is, and a Game the server no longer knows gives the id as `game_name` and empty text.
+  Tests: integration `record_list_view_and_delete_a_session`; unit `describes_a_result`
+- **SES-28** `POST /games/{id}/check` with `{ players, result }` stores nothing and returns `204` when `POST /sessions` would accept the Result, `422` with the plain-text reason otherwise, `404` for an unknown Game.
+  Tests: integration `a_result_can_be_checked_without_storing_it`
+- **SES-29** A `number` field sends `0` when empty; a `winner` box is a plain checkbox until a `player` field shares it (SES-14).
+  Tests: jest `GameForm.test.tsx` `builds the players and Result from the schema, and reports them once the server accepts`
+- **SES-32** The Players screen shows the server's reason from `POST /games/{id}/check` (SES-28), asked about 250 ms after the last edit, and "Next" stays disabled (the Session cannot be saved) until the server accepts; "Could not check the session. Try again." is shown when it cannot be reached.
+  Tests: jest `GameForm.test.tsx` `reports nothing and shows the server's reason while the server says no`; e2e `the form explains what is wrong and blocks going on until it is fixed`
+- **SES-33** A Game's `form` refers only to lists, setup fields and player fields that exist in its data file; each Game's tests fail otherwise.
+  Tests: unit `form_is_well_formed` (Root, Arcs, Old King's Crown)
 
 ## Interfaces
 
 | Route | Success | Other |
 |---|---|---|
 | `GET /games` | `200` `[GameInfo]` | `401` |
+| `GET /games/{id}` | `200` data file | `401`, `404` |
+| `POST /games/{id}/check` | `204` | `401`, `404`, `422` |
 | `POST /sessions` | `201` `Session` | `401`, `422`, `500` |
 | `GET /sessions` | `200` `[Session]` | `401`, `500` |
 | `GET /sessions/{id}` | `200` `Session` | `401`, `404`, `500` |
@@ -82,4 +94,4 @@ Editing a Session; linking Players to Users and sharing Sessions; other Games (A
 
 ## Code
 
-`backend/src/sessions.rs`, `backend/build.rs` (registers every crate in `backend/games/`), `backend/games/core`, `backend/games/root`, `backend/games/arcs` and `backend/games/old-kings-crown` (rules in `src/lib.rs`, options in `data.json`), `db/migrations/0003_sessions.sql`, `frontend/src/games/`, `frontend/src/app/(app)/results.tsx`, `frontend/src/app/(app)/sessions/`.
+`backend/src/sessions.rs`, `backend/build.rs` (registers every crate in `backend/games/`), `backend/games/core`, `backend/games/root`, `backend/games/arcs` and `backend/games/old-kings-crown` (rules in `src/lib.rs`, options in `data.json`), `db/migrations/0003_sessions.sql`, `frontend/src/games/` (`GameForm.tsx` is the only form), `frontend/src/app/(app)/results.tsx`, `frontend/src/app/(app)/sessions/`.

@@ -24,6 +24,7 @@ pub struct Entry {
 #[serde(deny_unknown_fields)]
 pub struct OkcData {
     pub houses: Vec<Entry>,
+    pub form: bgt_games::Form,
 }
 
 fn data() -> &'static OkcData {
@@ -86,6 +87,21 @@ impl Game for OldKingsCrown {
         }
         Ok(())
     }
+
+    fn summary(r: &OkcResult) -> String {
+        let winners: Vec<&str> = r.players.iter().filter(|(_, p)| p.winner).map(|(n, _)| n.as_str()).collect();
+        format!("Won by {}", winners.join(", "))
+    }
+
+    fn details(r: &OkcResult) -> Vec<String> {
+        r.players
+            .iter()
+            .map(|(name, p)| {
+                let house = data().houses.iter().find(|h| h.id == p.house).map_or(p.house.as_str(), |h| &h.label);
+                format!("{name} · {house} · {} points{}", p.score, if p.winner { " · winner" } else { "" })
+            })
+            .collect()
+    }
 }
 
 #[cfg(test)]
@@ -105,6 +121,18 @@ mod tests {
 
     fn res(players: Value) -> Value {
         json!({ "players": players })
+    }
+
+    #[test]
+    fn form_is_well_formed() {
+        bgt_games::check_form::<OldKingsCrown>();
+    }
+
+    #[test]
+    fn describes_a_session() {
+        let r: OkcResult = serde_json::from_value(res(json!({ "a": p("clans", 12, true), "b": p("nobility", 9, false) }))).unwrap();
+        assert_eq!(OldKingsCrown::summary(&r), "Won by a");
+        assert_eq!(OldKingsCrown::details(&r), ["a · The Clans · 12 points · winner", "b · The Nobility · 9 points"]);
     }
 
     #[test]

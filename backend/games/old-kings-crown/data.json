@@ -4,5 +4,13 @@
     { "id": "nobility", "label": "The Nobility", "expansion": "base" },
     { "id": "uprising", "label": "The Uprising", "expansion": "base" },
     { "id": "gathering", "label": "The Gathering", "expansion": "base" }
-  ]
+  ],
+  "form": {
+    "min_players": 1, "max_players": 4, "default_players": 2,
+    "player": [
+      {"key": "winner", "label": "won", "type": "winner"},
+      {"key": "house", "label": "house", "type": "select", "options": "houses", "unique": true, "blank": "Choose a house"},
+      {"key": "score", "label": "score", "type": "number"}
+    ]
+  }
 }

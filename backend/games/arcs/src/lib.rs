@@ -29,11 +29,17 @@ pub struct ArcsData {
     pub setups: Vec<Entry>,
     pub leaders: Vec<Entry>,
     pub lore: Vec<Entry>,
+    pub form: bgt_games::Form,
 }
 
 fn data() -> &'static ArcsData {
     static DATA: OnceLock<ArcsData> = OnceLock::new();
     DATA.get_or_init(|| serde_json::from_str(DATA_JSON).expect("games/arcs/data.json is invalid"))
+}
+
+/// The label for an id; an id no longer in the data shows as is.
+fn label(list: &[Entry], id: &str) -> String {
+    list.iter().find(|e| e.id == id).map_or(id, |e| &e.label).to_owned()
 }
 
 /// An id that exists in the list and is not retired.
@@ -116,6 +122,24 @@ impl Game for Arcs {
         }
         Ok(())
     }
+
+    fn summary(r: &ArcsResult) -> String {
+        let winners: Vec<&str> = r.players.iter().filter(|(_, p)| p.winner).map(|(n, _)| n.as_str()).collect();
+        format!("Won by {}", winners.join(", "))
+    }
+
+    fn details(r: &ArcsResult) -> Vec<String> {
+        let d = data();
+        let with = if r.leaders { " · with leaders" } else { "" };
+        let mut lines = vec![format!("{} setup · {} players{with}", label(&d.setups, &r.setup), r.players.len())];
+        for (name, p) in &r.players {
+            let leader = p.leader.as_ref().map(|l| format!(" · {}", label(&d.leaders, l))).unwrap_or_default();
+            let lore = if p.lore.is_empty() { String::new() } else { format!(" · Lore: {}", p.lore.iter().map(|l| label(&d.lore, l)).collect::<Vec<_>>().join(", ")) };
+            let won = if p.winner { " · winner" } else { "" };
+            lines.push(format!("{name} · {} power{leader}{lore}{won}", p.power));
+        }
+        lines
+    }
 }
 
 #[cfg(test)]
@@ -137,6 +161,25 @@ mod tests {
         let mut r = json!({ "setup": "2p_frontiers", "leaders": false, "players": { "a": p(12, true), "b": p(9, false) } });
         r.as_object_mut().unwrap().extend(extra.as_object().unwrap().clone());
         r
+    }
+
+    #[test]
+    fn form_is_well_formed() {
+        bgt_games::check_form::<Arcs>();
+    }
+
+    #[test]
+    fn describes_a_session() {
+        let r: ArcsResult = serde_json::from_value(json!({
+            "setup": "2p_frontiers", "leaders": true,
+            "players": { "a": { "power": 12, "winner": true, "leader": "elder", "lore": ["tool_priests", "gate_ports"] }, "b": p(9, false) }
+        }))
+        .unwrap();
+        assert_eq!(Arcs::summary(&r), "Won by a");
+        assert_eq!(
+            Arcs::details(&r),
+            ["Frontiers setup · 2 players · with leaders", "a · 12 power · Elder · Lore: Tool-Priests, Gate Ports · winner", "b · 9 power"]
+        );
     }
 
     #[test]

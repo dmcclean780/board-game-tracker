@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, View } from "react-native";
 import { api, useAuth } from "../../auth";
 import { Message, Screen, Text } from "../../components/ui";
 import { useTheme } from "../../theme";
-import { games, Session } from "../../games";
+import type { Session } from "../../games";
 
 export default function Results() {
   const { session } = useAuth();
@@ -27,7 +27,7 @@ export default function Results() {
         {sessions?.length === 0 && <Message text="No sessions yet." />}
         {sessions?.map((x) => (
           <Pressable key={x.id} accessibilityRole="link" onPress={() => router.push(`/sessions/${x.id}`)}>
-            <Text>{x.played_on} · {games[x.game]?.name ?? x.game} · {games[x.game]?.summary(x)}</Text>
+            <Text>{x.played_on} · {x.game_name} · {x.summary}</Text>
           </Pressable>
         ))}
         <Message error text={error} />
