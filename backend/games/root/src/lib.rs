@@ -91,6 +91,94 @@ pub struct Root;
 /// What the app registers: `build.rs` finds every crate in `games/` and uses this.
 pub type Plugin = Root;
 
+/// The map, deck, victory and landmarks exist and are not retired; returns the victory id.
+fn check_setup<'a>(d: &'a RootData, r: &RootResult) -> Result<&'a str, String> {
+    find(&d.maps, "map", &r.map)?;
+    find(&d.decks, "deck", &r.deck)?;
+    let victory = &find(&d.victories, "victory", &r.victory)?.id;
+    for l in &r.landmarks {
+        find(&d.landmarks, "landmark", l)?;
+    }
+    if r.landmarks.iter().collect::<HashSet<_>>().len() != r.landmarks.len() {
+        return Err("choose each landmark at most once".into());
+    }
+    Ok(victory)
+}
+
+/// One entry per session player, with a non-negative score and a faction nobody else holds (unless shareable).
+fn check_players(d: &RootData, players: &[String], r: &RootResult) -> Result<(), String> {
+    let names: HashSet<&String> = players.iter().collect();
+    if r.players.len() != names.len() || r.players.keys().any(|k| !names.contains(k)) {
+        return Err("result must have exactly one entry for each player".into());
+    }
+    let mut seen = HashSet::new();
+    for p in r.players.values() {
+        if p.score < 0 {
+            return Err("scores must not be negative".into());
+        }
+        let f = find(&d.factions, "faction", &p.faction)?;
+        if !f.shareable && !seen.insert(&f.id) {
+            return Err(format!("only one player can be the {}", f.label));
+        }
+    }
+    Ok(())
+}
+
+/// Every faction was checked by `check_players`, so an unknown one here cannot happen.
+fn can_coalition(d: &RootData, p: &RootPlayer) -> bool {
+    d.factions.iter().any(|f| f.id == p.faction && f.coalition)
+}
+
+/// A coalition faction with a partner wins or loses together with that partner.
+fn check_coalitions(d: &RootData, r: &RootResult) -> Result<(), String> {
+    let mut partnered = HashSet::new();
+    for (name, p) in &r.players {
+        let Some(partner) = &p.partner else { continue };
+        let q = r.players.get(partner).filter(|_| partner != name);
+        match q {
+            Some(q) if can_coalition(d, p) => {
+                if p.winner != q.winner {
+                    return Err(format!("{name} and coalition partner {partner} must both win or both lose"));
+                }
+            }
+            _ => return Err(format!("{name}: a coalition needs a Vagabond and another player")),
+        }
+        if !partnered.insert(partner) {
+            return Err(format!("{partner} is already in a coalition with another Vagabond"));
+        }
+    }
+    Ok(())
+}
+
+/// Each player has at most one partner, so a walk that outlasts the players is a loop.
+fn check_no_loop(r: &RootResult) -> Result<(), String> {
+    for name in r.players.keys() {
+        let mut at = name;
+        for _ in 0..r.players.len() {
+            match &r.players[at].partner {
+                Some(next) => at = next,
+                None => break,
+            }
+            if at == name {
+                return Err("coalitions cannot form a loop".into());
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Exactly one winner in their own right, with enough points in a points victory.
+fn check_winner(d: &RootData, r: &RootResult, victory: &str) -> Result<(), String> {
+    let leaders: Vec<&RootPlayer> = r.players.values().filter(|p| p.winner && !(can_coalition(d, p) && p.partner.is_some())).collect();
+    if leaders.len() != 1 {
+        return Err("exactly one player must win, plus any Vagabonds in a coalition with them".into());
+    }
+    if victory == POINTS && leaders[0].score < d.rules.points_to_win {
+        return Err(format!("a points victory needs at least {} points", d.rules.points_to_win));
+    }
+    Ok(())
+}
+
 impl Game for Root {
     const ID: &'static str = "root";
     const NAME: &'static str = "Root";
@@ -99,69 +187,11 @@ impl Game for Root {
 
     fn check(players: &[String], r: &RootResult) -> Result<(), String> {
         let d = data();
-        find(&d.maps, "map", &r.map)?;
-        find(&d.decks, "deck", &r.deck)?;
-        let victory = &find(&d.victories, "victory", &r.victory)?.id;
-        for l in &r.landmarks {
-            find(&d.landmarks, "landmark", l)?;
-        }
-        if r.landmarks.iter().collect::<HashSet<_>>().len() != r.landmarks.len() {
-            return Err("choose each landmark at most once".into());
-        }
-        let names: HashSet<&String> = players.iter().collect();
-        if r.players.len() != names.len() || r.players.keys().any(|k| !names.contains(k)) {
-            return Err("result must have exactly one entry for each player".into());
-        }
-        let mut seen = HashSet::new();
-        for p in r.players.values() {
-            if p.score < 0 {
-                return Err("scores must not be negative".into());
-            }
-            let f = find(&d.factions, "faction", &p.faction)?;
-            if !f.shareable && !seen.insert(&f.id) {
-                return Err(format!("only one player can be the {}", f.label));
-            }
-        }
-        // Every faction was found above, so a missing one here cannot happen.
-        let can_coalition = |p: &RootPlayer| d.factions.iter().any(|f| f.id == p.faction && f.coalition);
-        // A coalition faction with a partner wins or loses together with that partner.
-        let mut partnered = HashSet::new();
-        for (name, p) in &r.players {
-            let Some(partner) = &p.partner else { continue };
-            let q = r.players.get(partner).filter(|_| partner != name);
-            match q {
-                Some(q) if can_coalition(p) => {
-                    if p.winner != q.winner {
-                        return Err(format!("{name} and coalition partner {partner} must both win or both lose"));
-                    }
-                }
-                _ => return Err(format!("{name}: a coalition needs a Vagabond and another player")),
-            }
-            if !partnered.insert(partner) {
-                return Err(format!("{partner} is already in a coalition with another Vagabond"));
-            }
-        }
-        // Each player has at most one partner, so a walk that outlasts the players is a loop.
-        for name in r.players.keys() {
-            let mut at = name;
-            for _ in 0..r.players.len() {
-                match &r.players[at].partner {
-                    Some(next) => at = next,
-                    None => break,
-                }
-                if at == name {
-                    return Err("coalitions cannot form a loop".into());
-                }
-            }
-        }
-        let leaders: Vec<&RootPlayer> = r.players.values().filter(|p| p.winner && !(can_coalition(p) && p.partner.is_some())).collect();
-        if leaders.len() != 1 {
-            return Err("exactly one player must win, plus any Vagabonds in a coalition with them".into());
-        }
-        if victory == POINTS && leaders[0].score < d.rules.points_to_win {
-            return Err(format!("a points victory needs at least {} points", d.rules.points_to_win));
-        }
-        Ok(())
+        let victory = check_setup(d, r)?;
+        check_players(d, players, r)?;
+        check_coalitions(d, r)?;
+        check_no_loop(r)?;
+        check_winner(d, r, victory)
     }
 
     fn summary(r: &RootResult) -> String {
