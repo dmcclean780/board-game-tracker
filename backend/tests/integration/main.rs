@@ -182,12 +182,12 @@ fn root_session() -> serde_json::Value {
 }
 
 #[tokio::test]
-async fn games_lists_root_and_arcs() {
+async fn games_lists_every_game() {
     let (pool, _node) = db().await;
     let t = token(Uuid::new_v4(), "ada@x.com", None);
     let (status, body) = call(&pool, "GET", "/games", Some(&t)).await;
     assert_eq!(status, StatusCode::OK);
-    assert!(body.contains(r#""id":"root""#) && body.contains(r#""id":"arcs""#), "{body}");
+    assert!(body.contains(r#""id":"root""#) && body.contains(r#""id":"arcs""#) && body.contains(r#""id":"old-kings-crown""#), "{body}");
     assert_eq!(call(&pool, "GET", "/games", None).await.0, StatusCode::UNAUTHORIZED);
 }
 
@@ -248,6 +248,24 @@ async fn an_arcs_session_is_recorded_and_checked() {
     let (status, msg) = send(&pool, "POST", "/sessions", &t, arcs).await;
     assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
     assert!(msg.contains("is not for 2 players"), "{msg}");
+}
+
+#[tokio::test]
+async fn an_old_kings_crown_session_is_recorded_and_checked() {
+    let (pool, _node) = db().await;
+    let t = token(Uuid::new_v4(), "ada@x.com", None);
+    call(&pool, "GET", "/me", Some(&t)).await;
+    let mut okc = serde_json::json!({
+        "game": "old-kings-crown", "players": ["Ada", "Bo"],
+        "result": { "players": {
+            "Ada": { "house": "clans", "score": 12, "winner": true },
+            "Bo": { "house": "nobility", "score": 9, "winner": false } } },
+    });
+    assert_eq!(send(&pool, "POST", "/sessions", &t, okc.clone()).await.0, StatusCode::CREATED);
+    okc["result"]["players"]["Bo"]["house"] = "clans".into();
+    let (status, msg) = send(&pool, "POST", "/sessions", &t, okc).await;
+    assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
+    assert!(msg.contains("only one player can play the house"), "{msg}");
 }
 
 #[tokio::test]

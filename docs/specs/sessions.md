@@ -1,18 +1,18 @@
 # Sessions
 
-Status: implemented, web only. Decisions: [ADR 0016](../adr/0016-session-results-jsonb-per-game-crates.md), [ADR 0017](../adr/0017-game-data-in-json-files.md). Rules: [Root results](../business-rules/root-results.md), [Arcs results](../business-rules/arcs-results.md). Terms: Game, Session, Player, Result ([glossary](../../GLOSSARY.md)).
+Status: implemented, web only. Decisions: [ADR 0016](../adr/0016-session-results-jsonb-per-game-crates.md), [ADR 0017](../adr/0017-game-data-in-json-files.md). Rules: [Root results](../business-rules/root-results.md), [Arcs results](../business-rules/arcs-results.md), [Old King's Crown results](../business-rules/old-kings-crown-results.md). Terms: Game, Session, Player, Result ([glossary](../../GLOSSARY.md)).
 
 ## Purpose
 
-A User records a Session of a Game with a play date, the Players and the Result, then views or deletes it later. Root and Arcs are the Games so far.
+A User records a Session of a Game with a play date, the Players and the Result, then views or deletes it later. Root, Arcs and Old King's Crown are the Games so far.
 
 ## Behaviour
 
 All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `401`. A User must have called `GET /me` once ([ACC-1](accounts.md)).
 
-- **SES-1** `GET /games` returns the Games that can be recorded, as `[{ id, name }]`; today Root and Arcs.
-  Tests: integration `games_lists_root_and_arcs`
-- **SES-17** `GET /games/{id}` returns the Game's data file as JSON (for Root: `rules`, `victories`, `factions`, `maps`, `decks`, `landmarks`; for Arcs: `setups`, `leaders`, `lore`), `404` for an unknown Game.
+- **SES-1** `GET /games` returns the Games that can be recorded, as `[{ id, name }]`; today Root, Arcs and Old King's Crown (`old-kings-crown`).
+  Tests: integration `games_lists_every_game`
+- **SES-17** `GET /games/{id}` returns the Game's data file as JSON (for Root: `rules`, `victories`, `factions`, `maps`, `decks`, `landmarks`; for Arcs: `setups`, `leaders`, `lore`; for Old King's Crown: `houses`), `404` for an unknown Game.
   Tests: integration `a_games_data_is_served_to_signed_in_users`; unit `serves_the_games_data`, `data_file_is_well_formed`
 - **SES-18** The Root form builds its Map, Deck, Landmark, Faction and win-condition options from that data, hides entries marked `retired`, uses the data's `shareable` and `coalition` flags and `points_to_win`, and shows "Loading Root options…" until the data arrives. The Session screen labels ids from the data and shows an id as is when it is no longer in the data.
   Tests: jest `options come from the data file: a new entry appears and a retired one does not`, `the points target and the faction flags come from the data`, `waits for the game's data before showing the form`
@@ -57,6 +57,12 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
   Tests: jest `explains what is wrong, including a winner with less power`, `leaders are all or none, and one player holds each`, `a player can add and remove any number of lore cards, and each is held once`
 - **SES-23** An Arcs Session screen shows the setup card, the number of players, whether leaders were used, and each Player's power, leader, lore and winner mark; the Results list shows "Won by <winner>".
   Tests: none
+- **SES-24** `POST /sessions` for Old King's Crown is accepted only when its Result meets BR-OKC-001 and BR-OKC-002, and is rejected with `422` otherwise, naming the broken rule.
+  Tests: integration `an_old_kings_crown_session_is_recorded_and_checked`; unit in `backend/games/old-kings-crown` (`a_plain_session_passes`, `needs_one_to_four_players`, `houses_must_exist_and_be_unique`, `needs_exactly_one_winner_with_the_top_score`, `score_is_not_negative_and_players_must_match`, `data_file_is_well_formed`)
+- **SES-25** For Old King's Crown, the Setup screen has a "Number of players" dropdown (1 to 4, default 2). The Players screen has one card per Player with a name, a "won" checkbox, a house dropdown and a score. A house held by another Player is shown as "<house> (taken)" and cannot be picked. Ticking one "won" box clears the others. Next stays disabled until the Session meets BR-OKC-001 and BR-OKC-002, and the first broken rule is shown. Options come from the Game's data file and hide `retired` entries; "Loading Old King's Crown options…" shows until it arrives.
+  Tests: jest in `OldKingsCrownForm.test.tsx` (`reports the players and a Result once the form is valid`, `explains what is wrong, including a winner with a lower score`, `a house another player holds cannot be picked`, `one player is enough, and the player count follows the dropdown`)
+- **SES-26** An Old King's Crown Session screen shows each Player's house, score and winner mark; the Results list shows "Won by <winner>".
+  Tests: none
 
 ## Interfaces
 
@@ -68,12 +74,12 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
 | `GET /sessions/{id}` | `200` `Session` | `401`, `404`, `500` |
 | `DELETE /sessions/{id}` | `204` | `401`, `404`, `500` |
 
-Table `sessions(id, owner_id, game, played_on, notes, duration_minutes, players, result, created_at)`, migration `0003_sessions.sql`. Arcs Result shape: `{ setup, leaders: bool, players: { <name>: { power, winner, leader: id|null, lore: [id..] } } }`. Root Result shape: `{ map, deck, landmarks: [..], victory: "points"|"dominance", players: { <name>: { faction, score, winner, partner } } }`.
+Table `sessions(id, owner_id, game, played_on, notes, duration_minutes, players, result, created_at)`, migration `0003_sessions.sql`. Arcs Result shape: `{ setup, leaders: bool, players: { <name>: { power, winner, leader: id|null, lore: [id..] } } }`. Old King's Crown Result shape: `{ players: { <name>: { house: id, score, winner } } }`. Root Result shape: `{ map, deck, landmarks: [..], victory: "points"|"dominance", players: { <name>: { faction, score, winner, partner } } }`.
 
 ## Not yet
 
-Editing a Session; linking Players to Users and sharing Sessions; other Games (Arcs is the base game and Leaders & Lore pack only, not The Blighted Reach, and does not model Arcs' tie-breaks); recording a Session before the first `GET /me` (currently `500`); native apps.
+Editing a Session; linking Players to Users and sharing Sessions; other Games (Arcs is the base game and Leaders & Lore pack only, not The Blighted Reach, and does not model Arcs' tie-breaks; Old King's Crown does not model its tie-breaks or any setup choices); recording a Session before the first `GET /me` (currently `500`); native apps.
 
 ## Code
 
-`backend/src/sessions.rs`, `backend/games/core`, `backend/games/root` and `backend/games/arcs` (rules in `src/lib.rs`, options in `data.json`), `db/migrations/0003_sessions.sql`, `frontend/src/games/`, `frontend/src/app/(app)/results.tsx`, `frontend/src/app/(app)/sessions/`.
+`backend/src/sessions.rs`, `backend/games/core`, `backend/games/root`, `backend/games/arcs` and `backend/games/old-kings-crown` (rules in `src/lib.rs`, options in `data.json`), `db/migrations/0003_sessions.sql`, `frontend/src/games/`, `frontend/src/app/(app)/results.tsx`, `frontend/src/app/(app)/sessions/`.
