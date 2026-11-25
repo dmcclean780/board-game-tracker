@@ -43,7 +43,7 @@ A Root win by the first Player to reach 30 points.
 A Root win by a Player who played a dominance card. Scores are still recorded but do not decide the win.
 
 **Coalition**:
-A Root Vagabond who wins together with the Player they chose as partner, beside that Player's own victory.
+A Root Vagabond who wins together with the Player they chose as partner, beside that Player's own victory. The partner may be another Vagabond, so Coalitions can chain; each Player is the partner of at most one Vagabond.
 
 **Scheduled deletion**:
 The state of a User who asked to delete their account and can still restore it during the 30-day grace period.

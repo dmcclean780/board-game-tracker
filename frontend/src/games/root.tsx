@@ -27,10 +27,20 @@ const taken = (d: RootData, rows: Row[], i: number, faction: string) => !flags(d
 
 const freeFaction = (d: RootData, rows: Row[]) => (offered(d.factions).find((f) => !taken(d, rows, -1, f.id)) ?? d.factions[0]).id;
 
-/** Only coalition factions have partners, and a partner is another player whose faction cannot form a coalition. */
+/** Only coalition factions have partners, and a partner is another player. */
 function tidy(d: RootData, rows: Row[]): Row[] {
   const can = (faction: string) => !!flags(d, faction)?.coalition;
-  return rows.map((r, i) => (r.partner !== null && (!can(r.faction) || r.partner === i || can(rows[r.partner]?.faction)) ? { ...r, partner: null } : r));
+  return rows.map((r, i) => (r.partner !== null && (!can(r.faction) || r.partner === i) ? { ...r, partner: null } : r));
+}
+
+/** Following partners from `from` reaches `to` (the step limit stops a loop). */
+function reaches(rows: Row[], from: number, to: number): boolean {
+  let at: number | null = from;
+  for (let n = 0; at !== null && n <= rows.length; n++) {
+    if (at === to) return true;
+    at = rows[at]?.partner ?? null;
+  }
+  return false;
 }
 
 /** The first rule the Session breaks, mirroring the server's checks; null when it is fine to save. */
@@ -68,7 +78,7 @@ function RootFormBody({ data: d, onChange, step }: FormProps & { data: RootData 
 
   const can = (faction: string) => !!flags(d, faction)?.coalition;
   // A coalition faction wins or loses with its partner.
-  const won = (r: Row) => (r.partner !== null ? rows[r.partner].winner : r.winner);
+  const won = (r: Row): boolean => (r.partner !== null ? won(rows[r.partner]) : r.winner);
   const error = problem(d, rows, dominance);
 
   useEffect(() => {
@@ -130,7 +140,7 @@ function RootFormBody({ data: d, onChange, step }: FormProps & { data: RootData 
                 <Select
                   label={`Player ${i + 1} coalition with`}
                   value={r.partner === null ? "" : String(r.partner)}
-                  options={[{ value: "", label: "Nobody" }, ...rows.flatMap((o, j) => (j !== i && !can(o.faction) ? [{ value: String(j), label: nameOf(o, j) }] : []))]}
+                  options={[{ value: "", label: "Nobody" }, ...rows.flatMap((o, j) => (j !== i && !rows.some((x, k) => k !== i && x.partner === j) && !reaches(rows, j, i) ? [{ value: String(j), label: nameOf(o, j) }] : []))]}
                   onChange={(v) => set(i, { partner: v === "" ? null : Number(v) })}
                 />
               )}

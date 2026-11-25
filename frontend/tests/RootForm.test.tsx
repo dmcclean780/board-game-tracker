@@ -137,6 +137,45 @@ test("leaving Vagabond drops the coalition, switching win condition keeps it", a
   expect(last(onChange).result.players.Bo.partner).toBe("Ada");
 });
 
+const offers = (label: string, name: string) => screen.getByLabelText(label).props.items.some((o: { label: string }) => o.label === name);
+const threePlayers = async () => {
+  await names();
+  await fireEvent.press(screen.getByText("Add player"));
+  await type("Player 3 name", "Cy");
+  await pick("Player 2 faction", "vagabond");
+  await pick("Player 3 faction", "vagabond");
+};
+
+test("a Vagabond can partner another Vagabond, and the chain wins together", async () => {
+  const onChange = jest.fn();
+  await render(<Form onChange={onChange} />);
+  await threePlayers();
+  await pick("Player 2 coalition with", "0");
+  await pick("Player 3 coalition with", "1");
+  await fireEvent.press(screen.getByLabelText("Dominance"));
+  await fireEvent.press(screen.getByLabelText("Player 1 won"));
+  const { players } = last(onChange).result;
+  expect(players.Bo).toMatchObject({ winner: true, partner: "Ada" });
+  expect(players.Cy).toMatchObject({ winner: true, partner: "Bo" });
+});
+
+test("a player already in a coalition with a Vagabond is not offered to another", async () => {
+  await render(<Form onChange={jest.fn()} />);
+  await threePlayers();
+  expect(offers("Player 3 coalition with", "Ada")).toBe(true);
+  await pick("Player 2 coalition with", "0");
+  expect(offers("Player 3 coalition with", "Ada")).toBe(false);
+  expect(offers("Player 3 coalition with", "Bo")).toBe(true);
+});
+
+test("choosing a partner cannot make a loop", async () => {
+  await render(<Form onChange={jest.fn()} />);
+  await threePlayers();
+  await pick("Player 2 coalition with", "2");
+  expect(offers("Player 3 coalition with", "Bo")).toBe(false);
+  expect(offers("Player 3 coalition with", "Ada")).toBe(true);
+});
+
 test("reports the map, deck and any number of landmarks", async () => {
   const onChange = jest.fn();
   await render(<Form onChange={onChange} />);
