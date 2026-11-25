@@ -1,6 +1,7 @@
 use crate::auth::{AppState, AuthUser};
 use axum::{extract::{Path, State}, http::StatusCode, Json};
 use bgt_game_arcs::Arcs;
+use bgt_game_old_kings_crown::OldKingsCrown;
 use bgt_game_root::Root;
 use bgt_games::{check_session, data, Game};
 use chrono::{DateTime, NaiveDate, Utc};
@@ -18,13 +19,14 @@ pub struct GameInfo {
 
 /// Adding a Game: write its crate, then add it here and in `check`.
 fn games() -> Vec<GameInfo> {
-    vec![GameInfo { id: Root::ID, name: Root::NAME }, GameInfo { id: Arcs::ID, name: Arcs::NAME }]
+    vec![GameInfo { id: Root::ID, name: Root::NAME }, GameInfo { id: Arcs::ID, name: Arcs::NAME }, GameInfo { id: OldKingsCrown::ID, name: OldKingsCrown::NAME }]
 }
 
 fn check(game: &str, players: &[String], result: &Value) -> Result<(), String> {
     match game {
         Root::ID => check_session::<Root>(players, result),
         Arcs::ID => check_session::<Arcs>(players, result),
+        OldKingsCrown::ID => check_session::<OldKingsCrown>(players, result),
         _ => Err(format!("unknown game: {game}")),
     }
 }
@@ -68,6 +70,7 @@ pub async fn get_game(_: AuthUser, Path(id): Path<String>) -> Result<Json<Value>
     match id.as_str() {
         Root::ID => Ok(Json(data::<Root>())),
         Arcs::ID => Ok(Json(data::<Arcs>())),
+        OldKingsCrown::ID => Ok(Json(data::<OldKingsCrown>())),
         _ => Err(StatusCode::NOT_FOUND),
     }
 }

@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
 import { arcs } from "./arcs";
+import { oldKingsCrown } from "./oldKingsCrown";
 import { root } from "./root";
 
 export type Session = {
@@ -25,4 +26,4 @@ export type GameDef = {
   summary: (s: Session) => string;
 };
 
-export const games: Record<string, GameDef> = { root, arcs };
+export const games: Record<string, GameDef> = { root, arcs, "old-kings-crown": oldKingsCrown };

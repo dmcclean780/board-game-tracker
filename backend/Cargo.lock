@@ -178,6 +178,7 @@ version = "0.1.0"
 dependencies = [
  "axum",
  "bgt-game-arcs",
+ "bgt-game-old-kings-crown",
  "bgt-game-root",
  "bgt-games",
  "chrono",
@@ -197,6 +198,15 @@ dependencies = [
 
 [[package]]
 name = "bgt-game-arcs"
+version = "0.1.0"
+dependencies = [
+ "bgt-games",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "bgt-game-old-kings-crown"
 version = "0.1.0"
 dependencies = [
  "bgt-games",

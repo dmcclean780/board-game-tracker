@@ -1,0 +1,8 @@
+{
+  "houses": [
+    { "id": "clans", "label": "The Clans", "expansion": "base" },
+    { "id": "nobility", "label": "The Nobility", "expansion": "base" },
+    { "id": "uprising", "label": "The Uprising", "expansion": "base" },
+    { "id": "gathering", "label": "The Gathering", "expansion": "base" }
+  ]
+}
