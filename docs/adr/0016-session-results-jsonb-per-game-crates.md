@@ -15,7 +15,7 @@ Each Game records a different Result: Root has factions, scores and coalition wi
 
 ## Decision
 
-`sessions.result` is JSONB. Each Game is a crate under `backend/games/` (a Cargo workspace member) that implements the `bgt_games::Game` trait: a serde type for the Result and a `check` function for its rules. The backend lists Games in `backend/src/sessions.rs`. A new Game is a new crate plus one line there and one frontend form. Players are free-text names on the Session, and the Result refers to them by name.
+`sessions.result` is JSONB. Each Game is a crate under `backend/games/` (a Cargo workspace member) that implements the `bgt_games::Game` trait: a serde type for the Result and a `check` function for its rules. `backend/build.rs` registers every crate under `backend/games/` (each exports `pub type Plugin`). A new Game is a new crate, one dependency line in `backend/Cargo.toml` and one frontend form. Players are free-text names on the Session, and the Result refers to them by name.
 
 ## Consequences
 

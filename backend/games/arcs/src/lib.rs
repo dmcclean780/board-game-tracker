@@ -63,6 +63,9 @@ pub struct ArcsResult {
 
 pub struct Arcs;
 
+/// What the app registers: `build.rs` finds every crate in `games/` and uses this.
+pub type Plugin = Arcs;
+
 impl Game for Arcs {
     const ID: &'static str = "arcs";
     const NAME: &'static str = "Arcs";

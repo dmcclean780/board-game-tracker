@@ -48,6 +48,9 @@ pub struct OkcResult {
 
 pub struct OldKingsCrown;
 
+/// What the app registers: `build.rs` finds every crate in `games/` and uses this.
+pub type Plugin = OldKingsCrown;
+
 impl Game for OldKingsCrown {
     const ID: &'static str = "old-kings-crown";
     const NAME: &'static str = "Old King's Crown";

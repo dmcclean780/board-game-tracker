@@ -34,6 +34,18 @@ pub fn check_session<G: Game>(players: &[String], result: &Value) -> Result<(), 
     G::check(players, &result)
 }
 
+/// A Game with its type erased, so the app can hold them all in one list.
+pub struct GameEntry {
+    pub id: &'static str,
+    pub name: &'static str,
+    pub data: fn() -> Value,
+    pub check: fn(&[String], &Value) -> Result<(), String>,
+}
+
+pub fn entry<G: Game>() -> GameEntry {
+    GameEntry { id: G::ID, name: G::NAME, data: data::<G>, check: check_session::<G> }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
