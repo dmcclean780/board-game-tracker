@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, usePathname } from "expo-router";
 import { useMemo, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { auth, useAuth } from "../auth";
 import { Colors, useTheme } from "../theme";
 import { Text } from "./ui";
@@ -24,11 +25,12 @@ function useS() {
 /** Top bar: optional back arrow and the screen title on the left, the user menu on the right. */
 export function Header({ title, back }: { title: string; back?: boolean }) {
   const s = useS();
+  const { top } = useSafeAreaInsets();
   const { me } = useAuth();
   const [open, setOpen] = useState(false);
   const go = (path: "/settings/account") => { setOpen(false); router.push(path); };
   return (
-    <View style={s.header}>
+    <View style={[s.header, { paddingTop: top + 12 }]}>
       <View style={s.left}>
         {back && (
           <Pressable accessibilityRole="button" aria-label="Previous screen" onPress={() => (router.canGoBack() ? router.back() : router.replace("/results"))}>
