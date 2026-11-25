@@ -1,18 +1,18 @@
 # Sessions
 
-Status: implemented, web only. Decisions: [ADR 0016](../adr/0016-session-results-jsonb-per-game-crates.md), [ADR 0017](../adr/0017-game-data-in-json-files.md). Rules: [Root results](../business-rules/root-results.md). Terms: Game, Session, Player, Result ([glossary](../../GLOSSARY.md)).
+Status: implemented, web only. Decisions: [ADR 0016](../adr/0016-session-results-jsonb-per-game-crates.md), [ADR 0017](../adr/0017-game-data-in-json-files.md). Rules: [Root results](../business-rules/root-results.md), [Arcs results](../business-rules/arcs-results.md). Terms: Game, Session, Player, Result ([glossary](../../GLOSSARY.md)).
 
 ## Purpose
 
-A User records a Session of a Game with a play date, the Players and the Result, then views or deletes it later. Root is the only Game so far.
+A User records a Session of a Game with a play date, the Players and the Result, then views or deletes it later. Root and Arcs are the Games so far.
 
 ## Behaviour
 
 All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `401`. A User must have called `GET /me` once ([ACC-1](accounts.md)).
 
-- **SES-1** `GET /games` returns the Games that can be recorded, as `[{ id, name }]`; today `[{ "id": "root", "name": "Root" }]`.
-  Tests: integration `games_lists_root`
-- **SES-17** `GET /games/{id}` returns the Game's data file as JSON (for Root: `rules`, `victories`, `factions`, `maps`, `decks`, `landmarks`), `404` for an unknown Game.
+- **SES-1** `GET /games` returns the Games that can be recorded, as `[{ id, name }]`; today Root and Arcs.
+  Tests: integration `games_lists_root_and_arcs`
+- **SES-17** `GET /games/{id}` returns the Game's data file as JSON (for Root: `rules`, `victories`, `factions`, `maps`, `decks`, `landmarks`; for Arcs: `setups`, `leaders`, `lore`), `404` for an unknown Game.
   Tests: integration `a_games_data_is_served_to_signed_in_users`; unit `serves_the_games_data`, `data_file_is_well_formed`
 - **SES-18** The Root form builds its Map, Deck, Landmark, Faction and win-condition options from that data, hides entries marked `retired`, uses the data's `shareable` and `coalition` flags and `points_to_win`, and shows "Loading Root options…" until the data arrives. The Session screen labels ids from the data and shows an id as is when it is no longer in the data.
   Tests: jest `options come from the data file: a new entry appears and a retired one does not`, `the points target and the faction flags come from the data`, `waits for the game's data before showing the form`
@@ -49,6 +49,15 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
 - **SES-12** A Session screen shows the date, Game, Result (for Root: map, deck, landmarks, victory and each Player), duration and notes; "Delete session" asks for confirmation, then deletes and returns home.
   Tests: e2e `record a Root session, view it and delete it`
 
+- **SES-20** `POST /sessions` for Arcs is accepted only when its Result meets BR-ARCS-001 to BR-ARCS-004, and is rejected with `422` otherwise, naming the broken rule.
+  Tests: integration `an_arcs_session_is_recorded_and_checked`; unit in `backend/games/arcs` (`a_plain_session_passes`, `needs_two_to_four_players`, `setup_must_exist_and_match_the_player_count`, `needs_exactly_one_winner_with_the_most_power`, `power_is_not_negative_and_players_must_match`, `leaders_are_all_or_none_and_unique`, `lore_is_optional_any_number_and_unique`, `data_file_is_well_formed`)
+- **SES-21** For Arcs, the Setup screen has a "Number of players" dropdown (2 to 4, default 2), a "Setup card" dropdown listing only the cards for that number of players, and a "Play with leaders" checkbox (off by default). Changing the number of players picks the first card for that number if the chosen card is for another number. Options come from the Game's data file and hide `retired` entries; "Loading Arcs options…" shows until it arrives.
+  Tests: jest `the setup cards follow the number of players`, `reports the players and a Result once the form is valid`
+- **SES-22** For Arcs, the Players screen has one card per Player (as many as the number of players) with a name, a "won" checkbox, a power, a leader dropdown only when "Play with leaders" is ticked, and lore dropdowns. A card held by another Player is shown as "<card> (taken)" and cannot be picked. "Add lore for player n" adds a dropdown for the first free lore card and each has a "Remove" button. Ticking one "won" box clears the others. Next stays disabled until the Session meets BR-ARCS-001 to BR-ARCS-004, and the first broken rule is shown. Lowering the number of players and raising it again keeps what was typed.
+  Tests: jest `explains what is wrong, including a winner with less power`, `leaders are all or none, and one player holds each`, `a player can add and remove any number of lore cards, and each is held once`
+- **SES-23** An Arcs Session screen shows the setup card, the number of players, whether leaders were used, and each Player's power, leader, lore and winner mark; the Results list shows "Won by <winner>".
+  Tests: none
+
 ## Interfaces
 
 | Route | Success | Other |
@@ -59,12 +68,12 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
 | `GET /sessions/{id}` | `200` `Session` | `401`, `404`, `500` |
 | `DELETE /sessions/{id}` | `204` | `401`, `404`, `500` |
 
-Table `sessions(id, owner_id, game, played_on, notes, duration_minutes, players, result, created_at)`, migration `0003_sessions.sql`. Root Result shape: `{ map, deck, landmarks: [..], victory: "points"|"dominance", players: { <name>: { faction, score, winner, partner } } }`.
+Table `sessions(id, owner_id, game, played_on, notes, duration_minutes, players, result, created_at)`, migration `0003_sessions.sql`. Arcs Result shape: `{ setup, leaders: bool, players: { <name>: { power, winner, leader: id|null, lore: [id..] } } }`. Root Result shape: `{ map, deck, landmarks: [..], victory: "points"|"dominance", players: { <name>: { faction, score, winner, partner } } }`.
 
 ## Not yet
 
-Editing a Session; linking Players to Users and sharing Sessions; other Games; recording a Session before the first `GET /me` (currently `500`); native apps.
+Editing a Session; linking Players to Users and sharing Sessions; other Games (Arcs is the base game and Leaders & Lore pack only, not The Blighted Reach, and does not model Arcs' tie-breaks); recording a Session before the first `GET /me` (currently `500`); native apps.
 
 ## Code
 
-`backend/src/sessions.rs`, `backend/games/core`, `backend/games/root` (rules in `src/lib.rs`, options in `data.json`), `db/migrations/0003_sessions.sql`, `frontend/src/games/`, `frontend/src/app/(app)/results.tsx`, `frontend/src/app/(app)/sessions/`.
+`backend/src/sessions.rs`, `backend/games/core`, `backend/games/root` and `backend/games/arcs` (rules in `src/lib.rs`, options in `data.json`), `db/migrations/0003_sessions.sql`, `frontend/src/games/`, `frontend/src/app/(app)/results.tsx`, `frontend/src/app/(app)/sessions/`.

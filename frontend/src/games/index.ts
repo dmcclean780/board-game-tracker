@@ -1,4 +1,5 @@
 import type { ComponentType } from "react";
+import { arcs } from "./arcs";
 import { root } from "./root";
 
 export type Session = {
@@ -24,4 +25,4 @@ export type GameDef = {
   summary: (s: Session) => string;
 };
 
-export const games: Record<string, GameDef> = { root };
+export const games: Record<string, GameDef> = { root, arcs };
