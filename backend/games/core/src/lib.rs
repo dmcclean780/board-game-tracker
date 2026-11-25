@@ -1,6 +1,6 @@
 //! The seam every Game plugs into: a Game names itself, says what its Result looks like and checks it.
 use serde::de::DeserializeOwned;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashSet;
 
@@ -15,8 +15,39 @@ pub trait Game {
     fn check(players: &[String], result: &Self::Result) -> Result<(), String>;
     /// The Players who won, for the Results list.
     fn winners(result: &Self::Result) -> Vec<String>;
-    /// The lines the Session screen shows for the Result.
-    fn details(result: &Self::Result) -> Vec<String>;
+    /// What the Session screen shows for the Result.
+    fn details(result: &Self::Result) -> Details;
+}
+
+/// The Session screen's text: titled setup items, then one line per Player (the app marks the winners itself).
+#[derive(Serialize, Default)]
+pub struct Details {
+    pub setup: Vec<Setup>,
+    pub players: Vec<Line>,
+}
+
+#[derive(Serialize)]
+pub struct Setup {
+    pub title: String,
+    pub value: String,
+}
+
+#[derive(Serialize)]
+pub struct Line {
+    pub name: String,
+    pub summary: String,
+}
+
+impl Setup {
+    pub fn new(title: impl Into<String>, value: impl Into<String>) -> Self {
+        Self { title: title.into(), value: value.into() }
+    }
+}
+
+impl Line {
+    pub fn new(name: impl Into<String>, summary: impl Into<String>) -> Self {
+        Self { name: name.into(), summary: summary.into() }
+    }
 }
 
 /// How the app builds a Game's form (the `form` key of its data file). Setup fields become top-level keys of the Result;
@@ -96,8 +127,8 @@ pub fn check_form<G: Game>() {
     }
 }
 
-/// The Result's Results-list line and Session-screen lines; None when it is not this Game's Result.
-pub fn describe<G: Game>(result: &Value) -> Option<(Vec<String>, Vec<String>)> {
+/// The Result's Results-list winners and Session-screen details; None when it is not this Game's Result.
+pub fn describe<G: Game>(result: &Value) -> Option<(Vec<String>, Details)> {
     let r: G::Result = serde_json::from_value(result.clone()).ok()?;
     Some((G::winners(&r), G::details(&r)))
 }
@@ -128,7 +159,7 @@ pub struct GameEntry {
     pub name: &'static str,
     pub data: fn() -> Value,
     pub check: fn(&[String], &Value) -> Result<(), String>,
-    pub describe: fn(&Value) -> Option<(Vec<String>, Vec<String>)>,
+    pub describe: fn(&Value) -> Option<(Vec<String>, Details)>,
 }
 
 pub fn entry<G: Game>() -> GameEntry {
@@ -152,8 +183,8 @@ mod tests {
         fn winners(r: &u32) -> Vec<String> {
             vec![format!("n={r}")]
         }
-        fn details(r: &u32) -> Vec<String> {
-            vec![r.to_string()]
+        fn details(r: &u32) -> Details {
+            Details { setup: vec![Setup { title: "N".into(), value: r.to_string() }], players: vec![Line { name: "a".into(), summary: "s".into() }] }
         }
     }
 
@@ -168,8 +199,10 @@ mod tests {
 
     #[test]
     fn describes_a_result() {
-        assert_eq!(describe::<Pass>(&json!(7)), Some((vec!["n=7".into()], vec!["7".into()])));
-        assert_eq!(describe::<Pass>(&json!("x")), None);
+        let (winners, details) = describe::<Pass>(&json!(7)).unwrap();
+        assert_eq!(winners, ["n=7"]);
+        assert_eq!(serde_json::to_value(details).unwrap(), json!({ "setup": [{ "title": "N", "value": "7" }], "players": [{ "name": "a", "summary": "s" }] }));
+        assert!(describe::<Pass>(&json!("x")).is_none());
     }
 
     #[test]

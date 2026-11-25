@@ -46,8 +46,8 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
   Tests: jest `GameForm.test.tsx` `a unique option held by another player is marked taken, but a shareable one is not`, `repeat adds the first free entry, never one another player holds, and removes`; e2e `a faction another player holds cannot be picked`
 - **SES-14** A `player` field (Root's "coalition with") appears only for a Player whose option in its `via` field has the flag `when_flag`, lists "Nobody" and the other Players, except any already partnered by another Player and any that would make a loop, and is sent as the partner's name or `null`. With a partner, the Player's `shares` field (their `winner` box) is disabled, reads "won (with <partner>)" and follows the partner's (so a chain of partners wins together); the link survives renaming the partner and is dropped when it stops being valid.
   Tests: jest `GameForm.test.tsx` `a linked player shares the partner's win, and the link drops when it stops being valid`, `a partner may itself be linked, and the whole chain wins together`; e2e `a Vagabond coalition wins with its partner`
-- **SES-12** A Session screen shows the game name and date, then the lines the server wrote for the Result (SES-27), then duration and notes. For Root the lines are the map and deck, landmarks, victory and each Player (faction, score, coalition partner, winner mark); "Delete session" asks for confirmation, then deletes and returns home.
-  Tests: integration `record_list_view_and_delete_a_session`; unit `describes_a_coalition_win` (Root); e2e `record a Root session, view it and delete it`
+- **SES-12** A Session screen shows the game name with the date (and duration, when there is one) at the top, then each setup item the server wrote (SES-27) as its title and value, then a line per Player with the name and summary, then notes. A winning Player's line has a gold crown beside the name and a faint gold outline, and its accessible label says "winner". For Root the setup items are Map, Deck, Landmarks (only if any) and Victory, and a Player's summary is faction, score and coalition partner. "Delete session" asks for confirmation, then deletes and returns home.
+  Tests: jest `SessionDetail.test.tsx` `shows the game and date, then titled setup, then a line per player`, `marks the winners, and only the winners`; integration `record_list_view_and_delete_a_session`; unit `describes_a_coalition_win` (Root); e2e `record a Root session, view it and delete it`
 
 - **SES-20** `POST /sessions` for Arcs is accepted only when its Result meets BR-ARCS-001 to BR-ARCS-004, and is rejected with `422` otherwise, naming the broken rule.
   Tests: integration `an_arcs_session_is_recorded_and_checked`; unit in `backend/games/arcs` (`a_plain_session_passes`, `needs_two_to_four_players`, `setup_must_exist_and_match_the_player_count`, `needs_exactly_one_winner_with_the_most_power`, `power_is_not_negative_and_players_must_match`, `leaders_are_all_or_none_and_unique`, `lore_is_optional_any_number_and_unique`, `data_file_is_well_formed`)
@@ -55,15 +55,15 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
   Tests: none
 - **SES-22** `removed`: now SES-13, SES-15 and SES-18 (Arcs: power, leader when leaders are on, lore).
   Tests: none
-- **SES-23** An Arcs Session screen shows the setup card, the number of players, whether leaders were used, and each Player's power, leader, lore and winner mark; the Results list shows the winner (SES-9).
+- **SES-23** An Arcs Session screen shows the setup items Setup (the card) and Leaders (Yes or No), and each Player's power, leader and lore; the Results list shows the winner (SES-9).
   Tests: unit `describes_a_session` (Arcs)
 - **SES-24** `POST /sessions` for Old King's Crown is accepted only when its Result meets BR-OKC-001 and BR-OKC-002, and is rejected with `422` otherwise, naming the broken rule.
   Tests: integration `an_old_kings_crown_session_is_recorded_and_checked`; unit in `backend/games/old-kings-crown` (`a_plain_session_passes`, `needs_one_to_four_players`, `houses_must_exist_and_be_unique`, `needs_exactly_one_winner_with_the_top_score`, `score_is_not_negative_and_players_must_match`, `data_file_is_well_formed`)
 - **SES-25** `removed`: now SES-18 (Old King's Crown: 1 to 4 players, house and score).
   Tests: none
-- **SES-26** An Old King's Crown Session screen shows each Player's house, score and winner mark; the Results list shows the winner (SES-9).
+- **SES-26** An Old King's Crown Session screen shows no setup items, and each Player's house and score; the Results list shows the winner (SES-9).
   Tests: unit `describes_a_session` (Old King's Crown)
-- **SES-27** `GET /sessions`, `GET /sessions/{id}` and `POST /sessions` return each Session with `game_name`, `winners` (the names of the winning Players) and `details` (one line per item the Session screen shows); unknown ids in an old Result show as is, and a Game the server no longer knows gives the id as `game_name` and empty `winners` and `details`.
+- **SES-27** `GET /sessions`, `GET /sessions/{id}` and `POST /sessions` return each Session with `game_name`, `winners` (the names of the winning Players) and `details` (`{ setup: [{ title, value }], players: [{ name, summary }] }`, what the Session screen shows; the winner mark comes from `winners`); unknown ids in an old Result show as is, and a Game the server no longer knows gives the id as `game_name` and empty `winners` and `details`.
   Tests: integration `record_list_view_and_delete_a_session`; unit `describes_a_result`
 - **SES-28** `POST /games/{id}/check` with `{ players, result }` stores nothing and returns `204` when `POST /sessions` would accept the Result, `422` with the plain-text reason otherwise, `404` for an unknown Game.
   Tests: integration `a_result_can_be_checked_without_storing_it`

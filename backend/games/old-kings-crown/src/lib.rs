@@ -1,6 +1,6 @@
 //! Old King's Crown: each player takes one house and ends with a score.
 //! See docs/business-rules/old-kings-crown-results.md.
-use bgt_games::Game;
+use bgt_games::{Details, Game, Line};
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashSet};
 use std::sync::OnceLock;
@@ -92,14 +92,16 @@ impl Game for OldKingsCrown {
         r.players.iter().filter(|(_, p)| p.winner).map(|(n, _)| n.clone()).collect()
     }
 
-    fn details(r: &OkcResult) -> Vec<String> {
-        r.players
+    fn details(r: &OkcResult) -> Details {
+        let players = r
+            .players
             .iter()
             .map(|(name, p)| {
                 let house = data().houses.iter().find(|h| h.id == p.house).map_or(p.house.as_str(), |h| &h.label);
-                format!("{name} · {house} · {} points{}", p.score, if p.winner { " · winner" } else { "" })
+                Line::new(name, format!("{house} · {} points", p.score))
             })
-            .collect()
+            .collect();
+        Details { setup: vec![], players }
     }
 }
 
@@ -131,7 +133,10 @@ mod tests {
     fn describes_a_session() {
         let r: OkcResult = serde_json::from_value(res(json!({ "a": p("clans", 12, true), "b": p("nobility", 9, false) }))).unwrap();
         assert_eq!(OldKingsCrown::winners(&r), ["a"]);
-        assert_eq!(OldKingsCrown::details(&r), ["a · The Clans · 12 points · winner", "b · The Nobility · 9 points"]);
+        assert_eq!(
+            serde_json::to_value(OldKingsCrown::details(&r)).unwrap(),
+            json!({ "setup": [], "players": [{ "name": "a", "summary": "The Clans · 12 points" }, { "name": "b", "summary": "The Nobility · 9 points" }] })
+        );
     }
 
     #[test]

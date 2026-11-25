@@ -1,6 +1,6 @@
 //! Arcs (base game and the Leaders & Lore pack): each player has Power, optionally a leader and lore cards.
 //! See docs/business-rules/arcs-results.md.
-use bgt_games::Game;
+use bgt_games::{Details, Game, Line, Setup};
 use serde::Deserialize;
 use std::collections::{BTreeMap, HashSet};
 use std::sync::OnceLock;
@@ -127,17 +127,16 @@ impl Game for Arcs {
         r.players.iter().filter(|(_, p)| p.winner).map(|(n, _)| n.clone()).collect()
     }
 
-    fn details(r: &ArcsResult) -> Vec<String> {
+    fn details(r: &ArcsResult) -> Details {
         let d = data();
-        let with = if r.leaders { " · with leaders" } else { "" };
-        let mut lines = vec![format!("{} setup · {} players{with}", label(&d.setups, &r.setup), r.players.len())];
+        let setup = vec![Setup::new("Setup", label(&d.setups, &r.setup)), Setup::new("Leaders", if r.leaders { "Yes" } else { "No" })];
+        let mut players = vec![];
         for (name, p) in &r.players {
             let leader = p.leader.as_ref().map(|l| format!(" · {}", label(&d.leaders, l))).unwrap_or_default();
             let lore = if p.lore.is_empty() { String::new() } else { format!(" · Lore: {}", p.lore.iter().map(|l| label(&d.lore, l)).collect::<Vec<_>>().join(", ")) };
-            let won = if p.winner { " · winner" } else { "" };
-            lines.push(format!("{name} · {} power{leader}{lore}{won}", p.power));
+            players.push(Line::new(name, format!("{} power{leader}{lore}", p.power)));
         }
-        lines
+        Details { setup, players }
     }
 }
 
@@ -176,8 +175,11 @@ mod tests {
         .unwrap();
         assert_eq!(Arcs::winners(&r), ["a"]);
         assert_eq!(
-            Arcs::details(&r),
-            ["Frontiers setup · 2 players · with leaders", "a · 12 power · Elder · Lore: Tool-Priests, Gate Ports · winner", "b · 9 power"]
+            serde_json::to_value(Arcs::details(&r)).unwrap(),
+            json!({
+                "setup": [{ "title": "Setup", "value": "Frontiers" }, { "title": "Leaders", "value": "Yes" }],
+                "players": [{ "name": "a", "summary": "12 power · Elder · Lore: Tool-Priests, Gate Ports" }, { "name": "b", "summary": "9 power" }]
+            })
         );
     }
 

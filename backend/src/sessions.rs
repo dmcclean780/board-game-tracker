@@ -1,6 +1,6 @@
 use crate::auth::{AppState, AuthUser};
 use axum::{extract::{Path, State}, http::StatusCode, Json};
-use bgt_games::GameEntry;
+use bgt_games::{Details, GameEntry};
 use std::sync::OnceLock;
 use chrono::{DateTime, NaiveDate, Utc};
 use serde::{Deserialize, Serialize};
@@ -33,13 +33,13 @@ fn check(game: &str, players: &[String], result: &Value) -> Result<(), String> {
 }
 
 /// The Game's name and the text the app shows for a Result; the app has no Game-specific code.
-fn describe_game(game: &str, result: &Value) -> (String, Vec<String>, Vec<String>) {
+fn describe_game(game: &str, result: &Value) -> (String, Vec<String>, Details) {
     match registry().iter().find(|g| g.id == game) {
         Some(g) => {
             let (winners, details) = (g.describe)(result).unwrap_or_default();
             (g.name.into(), winners, details)
         }
-        None => (game.into(), Vec::new(), Vec::new()),
+        None => (game.into(), Vec::new(), Details::default()),
     }
 }
 
@@ -60,9 +60,10 @@ pub struct Session {
     /// The Players who won, for the Results list.
     #[sqlx(skip)]
     pub winners: Vec<String>,
-    /// The lines the Session screen shows for the Result.
+    /// What the Session screen shows for the Result: titled setup items and one line per Player.
     #[sqlx(skip)]
-    pub details: Vec<String>,
+    #[schema(value_type = Object)]
+    pub details: Details,
 }
 
 impl Session {
