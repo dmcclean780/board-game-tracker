@@ -81,13 +81,26 @@ test("a faction held by another player cannot be picked, except Vagabond", async
   expect(last(onChange).result.players.Bo.faction).toBe("vagabond");
 });
 
-test("coalitions exist only for a Vagabond in a dominance victory", async () => {
+test("coalitions exist only for a Vagabond, in either win condition", async () => {
   await render(<Form onChange={jest.fn()} />);
   await pick("Player 2 faction", "vagabond");
-  expect(screen.queryByLabelText("Player 2 coalition with")).toBeNull(); // not dominance
+  expect(screen.getByLabelText("Player 2 coalition with")).toBeTruthy(); // 30 Points
   await fireEvent.press(screen.getByLabelText("Dominance"));
   expect(screen.getByLabelText("Player 2 coalition with")).toBeTruthy();
   expect(screen.queryByLabelText("Player 1 coalition with")).toBeNull(); // not a Vagabond
+});
+
+test("a Vagabond coalition wins a points victory with a partner on 30", async () => {
+  const onChange = jest.fn();
+  await render(<Form onChange={onChange} />);
+  await names();
+  await pick("Player 2 faction", "vagabond");
+  await pick("Player 2 coalition with", "0");
+  await type("Player 1 score", "30");
+  await fireEvent.press(screen.getByLabelText("Player 1 won"));
+  const { result } = last(onChange);
+  expect(result.victory).toBe("points");
+  expect(result.players.Bo).toMatchObject({ winner: true, partner: "Ada" });
 });
 
 test("a coalition Vagabond wins with their partner, and keeps them when renamed", async () => {
@@ -105,7 +118,7 @@ test("a coalition Vagabond wins with their partner, and keeps them when renamed"
   expect(screen.getByLabelText("Player 2 won (with Ada L)")).toBeTruthy();
 });
 
-test("leaving dominance or Vagabond drops the coalition", async () => {
+test("leaving Vagabond drops the coalition, switching win condition keeps it", async () => {
   const onChange = jest.fn();
   await render(<Form onChange={onChange} />);
   await names();
@@ -118,8 +131,10 @@ test("leaving dominance or Vagabond drops the coalition", async () => {
   expect(last(onChange).result.players.Bo.partner).toBeNull();
   await pick("Player 2 faction", "vagabond");
   await pick("Player 2 coalition with", "0");
-  await fireEvent.press(screen.getByLabelText("30 Points")); // dominance off: points need 30
-  expect(screen.queryByLabelText("Player 2 coalition with")).toBeNull();
+  await fireEvent.press(screen.getByLabelText("30 Points"));
+  expect(last(onChange)).toBeNull(); // Ada has no 30 points, but the coalition is kept
+  await type("Player 1 score", "30");
+  expect(last(onChange).result.players.Bo.partner).toBe("Ada");
 });
 
 test("reports the map, deck and any number of landmarks", async () => {

@@ -27,10 +27,10 @@ const taken = (d: RootData, rows: Row[], i: number, faction: string) => !flags(d
 
 const freeFaction = (d: RootData, rows: Row[]) => (offered(d.factions).find((f) => !taken(d, rows, -1, f.id)) ?? d.factions[0]).id;
 
-/** Only coalition factions have partners, only in a dominance victory, and a partner is another player whose faction cannot form a coalition. */
-function tidy(d: RootData, rows: Row[], dominance: boolean): Row[] {
+/** Only coalition factions have partners, and a partner is another player whose faction cannot form a coalition. */
+function tidy(d: RootData, rows: Row[]): Row[] {
   const can = (faction: string) => !!flags(d, faction)?.coalition;
-  return rows.map((r, i) => (r.partner !== null && (!dominance || !can(r.faction) || r.partner === i || can(rows[r.partner]?.faction)) ? { ...r, partner: null } : r));
+  return rows.map((r, i) => (r.partner !== null && (!can(r.faction) || r.partner === i || can(rows[r.partner]?.faction)) ? { ...r, partner: null } : r));
 }
 
 /** The first rule the Session breaks, mirroring the server's checks; null when it is fine to save. */
@@ -82,13 +82,9 @@ function RootFormBody({ data: d, onChange, step }: FormProps & { data: RootData 
 
   // Only one player wins in their own right: ticking Won clears everyone else.
   const set = (i: number, patch: Partial<Row>) =>
-    setRows((rs) => tidy(d, rs.map((r, j) => (j === i ? { ...r, ...patch } : patch.winner ? { ...r, winner: false } : r)), dominance));
+    setRows((rs) => tidy(d, rs.map((r, j) => (j === i ? { ...r, ...patch } : patch.winner ? { ...r, winner: false } : r))));
   const remove = (i: number) =>
-    setRows((rs) => tidy(d, rs.filter((_, j) => j !== i).map((r) => ({ ...r, partner: r.partner === i ? null : r.partner !== null && r.partner > i ? r.partner - 1 : r.partner })), dominance));
-  const toggleDominance = (v: boolean) => {
-    setDominance(v);
-    setRows((rs) => tidy(d, rs, v));
-  };
+    setRows((rs) => tidy(d, rs.filter((_, j) => j !== i).map((r) => ({ ...r, partner: r.partner === i ? null : r.partner !== null && r.partner > i ? r.partner - 1 : r.partner }))));
   const options = (list: Entry[]) => offered(list).map((e) => ({ value: e.id, label: e.label }));
 
   // No step given shows everything.
@@ -106,8 +102,8 @@ function RootFormBody({ data: d, onChange, step }: FormProps & { data: RootData 
           ))}
           <Heading text="Win condition" />
           {/* Like radio buttons: one is always ticked, and ticking one unticks the other. */}
-          <Checkbox label={labelOf(d.victories, POINTS)} checked={!dominance} onChange={(on) => on && toggleDominance(false)} />
-          <Checkbox label={labelOf(d.victories, DOMINANCE)} checked={dominance} onChange={(on) => on && toggleDominance(true)} />
+          <Checkbox label={labelOf(d.victories, POINTS)} checked={!dominance} onChange={(on) => on && setDominance(false)} />
+          <Checkbox label={labelOf(d.victories, DOMINANCE)} checked={dominance} onChange={(on) => on && setDominance(true)} />
         </>
       )}
       {show("players") && (
@@ -130,7 +126,7 @@ function RootFormBody({ data: d, onChange, step }: FormProps & { data: RootData 
                 onChange={(faction) => set(i, { faction })}
               />
               <Field label={`Player ${i + 1} score`} hint="0" keyboardType="number-pad" value={r.score} onChangeText={(score) => set(i, { score })} />
-              {dominance && can(r.faction) && (
+              {can(r.faction) && (
                 <Select
                   label={`Player ${i + 1} coalition with`}
                   value={r.partner === null ? "" : String(r.partner)}

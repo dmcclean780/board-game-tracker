@@ -50,6 +50,7 @@ fn data() -> &'static RootData {
 
 /// The victory ids the rules below depend on.
 const POINTS: &str = "points";
+#[cfg(test)]
 const DOMINANCE: &str = "dominance";
 
 /// An id that exists in the list and is not retired.
@@ -117,9 +118,6 @@ impl Game for Root {
         // A coalition faction with a partner wins or loses together with that partner.
         for (name, p) in &r.players {
             let Some(partner) = &p.partner else { continue };
-            if victory != DOMINANCE {
-                return Err(format!("{name}: a coalition needs a dominance victory"));
-            }
             let q = r.players.get(partner).filter(|_| partner != name);
             match q {
                 Some(q) if can_coalition(p) && !can_coalition(q) => {
@@ -250,10 +248,11 @@ mod tests {
     }
 
     #[test]
-    fn coalition_needs_dominance() {
+    fn coalition_in_points_victory() {
         let vag = json!({ "faction": "vagabond", "score": 3, "winner": true, "partner": "a" });
-        let r = json!({ "victory": "points", "players": { "a": p("lizard_cult", 30, true), "b": vag } });
-        assert!(check(&["a", "b"], r).unwrap_err().contains("dominance"));
+        let r = |score| json!({ "victory": "points", "players": { "a": p("lizard_cult", score, true), "b": vag.clone() } });
+        assert!(check(&["a", "b"], r(30)).is_ok());
+        assert!(check(&["a", "b"], r(29)).is_err()); // the partner needs the points
     }
 
     #[test]

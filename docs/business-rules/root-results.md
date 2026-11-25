@@ -13,7 +13,7 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 ## BR-ROOT-002 — One winner plus coalition Vagabonds
 
 - Status: active
-- Rule: Exactly one Player wins in their own right, and any Vagabond in a Coalition with that Player (Dominance victory only, BR-ROOT-004) wins too, so a Points victory has one winner and a Dominance victory has one winner plus Coalition Vagabonds.
+- Rule: Exactly one Player wins in their own right, and any Vagabond in a Coalition with that Player (BR-ROOT-004) wins too, so either victory has one winner plus any Coalition Vagabonds.
 - Rationale: Root has a single victor, and a Coalition lets Vagabonds share it.
 - Enforced in: `backend/games/root/src/lib.rs`
 - Tests: `needs_exactly_one_winner`, `two_vagabonds_may_share_a_coalition_partner`
@@ -21,7 +21,7 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 ## BR-ROOT-003 — Points victory needs 30
 
 - Status: active
-- Rule: In a Points victory the Player who wins in their own right has at least `rules.points_to_win` points (30 in `data.json`). A Dominance victory has no score condition.
+- Rule: In a Points victory the Player who wins in their own right has at least `rules.points_to_win` points (30 in `data.json`). A Dominance victory has no score condition. The points condition applies to that Player, not to their Coalition Vagabonds.
 - Rationale: A dominance card ends the game at any score.
 - Enforced in: `backend/games/root/src/lib.rs`
 - Tests: `points_victory_needs_30`, `dominance_victory_ignores_score`
@@ -29,10 +29,10 @@ Terms: Session, Result, Points victory, Dominance victory, Coalition ([glossary]
 ## BR-ROOT-004 — Coalition partners
 
 - Status: active
-- Rule: A Coalition only exists in a Dominance victory. Only a faction marked `coalition` in the data file (Vagabond) has a Coalition partner. The partner is another Player in the Session whose faction is not marked `coalition`, and the Vagabond wins exactly when the partner wins. Two Vagabonds may choose the same partner.
+- Rule: A Coalition may form in a Points or a Dominance victory. Only a faction marked `coalition` in the data file (Vagabond) has a Coalition partner. The partner is another Player in the Session whose faction is not marked `coalition`, and the Vagabond wins exactly when the partner wins. Two Vagabonds may choose the same partner.
 - Rationale: A Vagabond cannot win alone by Coalition and shares the partner's victory.
 - Enforced in: `backend/games/root/src/lib.rs`
-- Tests: `bad_coalitions`, `coalition_needs_dominance`, `two_vagabonds_may_share_a_coalition_partner`
+- Tests: `bad_coalitions`, `coalition_in_points_victory`, `two_vagabonds_may_share_a_coalition_partner`
 
 ## BR-ROOT-005 — Scores and player list
 
