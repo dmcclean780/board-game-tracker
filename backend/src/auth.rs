@@ -1,4 +1,5 @@
 use axum::{extract::FromRequestParts, http::{header::AUTHORIZATION, request::Parts, StatusCode}};
+use crate::live::Hub;
 use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use serde::Deserialize;
 use sqlx::PgPool;
@@ -8,6 +9,8 @@ use uuid::Uuid;
 pub struct AppState {
     pub db: PgPool,
     pub auth: Auth,
+    /// Open sockets by User, for live updates.
+    pub hub: Hub,
 }
 
 /// Connection to the auth provider (Supabase Auth / GoTrue).
@@ -30,6 +33,7 @@ pub struct AuthUser {
 #[derive(Deserialize)]
 struct Claims {
     sub: Uuid,
+    exp: u64,
     email: Option<String>,
     #[serde(default)]
     user_metadata: Meta,
@@ -52,6 +56,17 @@ fn display_name(meta: Meta, email: &str) -> String {
         .unwrap_or_else(|| email.split('@').next().unwrap_or(email).to_owned())
 }
 
+/// Checks a token and returns who it is for and when it expires (seconds since the epoch).
+pub fn verify(token: &str, auth: &Auth) -> Result<(AuthUser, u64), StatusCode> {
+    let mut validation = Validation::new(Algorithm::HS256);
+    validation.set_audience(&["authenticated"]);
+    let claims = decode::<Claims>(token, &DecodingKey::from_secret(auth.jwt_secret.as_bytes()), &validation)
+        .map_err(|_| StatusCode::UNAUTHORIZED)?
+        .claims;
+    let email = claims.email.filter(|e| !e.is_empty()).ok_or(StatusCode::UNAUTHORIZED)?;
+    Ok((AuthUser { id: claims.sub, display_name: display_name(claims.user_metadata, &email), email }, claims.exp))
+}
+
 impl FromRequestParts<AppState> for AuthUser {
     type Rejection = StatusCode;
 
@@ -62,13 +77,7 @@ impl FromRequestParts<AppState> for AuthUser {
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.strip_prefix("Bearer "))
             .ok_or(StatusCode::UNAUTHORIZED)?;
-        let mut validation = Validation::new(Algorithm::HS256);
-        validation.set_audience(&["authenticated"]);
-        let claims = decode::<Claims>(token, &DecodingKey::from_secret(state.auth.jwt_secret.as_bytes()), &validation)
-            .map_err(|_| StatusCode::UNAUTHORIZED)?
-            .claims;
-        let email = claims.email.filter(|e| !e.is_empty()).ok_or(StatusCode::UNAUTHORIZED)?;
-        Ok(AuthUser { id: claims.sub, display_name: display_name(claims.user_metadata, &email), email })
+        verify(token, &state.auth).map(|(user, _)| user)
     }
 }
 
