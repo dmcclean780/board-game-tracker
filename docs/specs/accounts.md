@@ -10,7 +10,7 @@ The backend keeps its own record of each User, created from the verified token, 
 
 All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `401`.
 
-- **ACC-1** `GET /me` creates the User row on first call and returns `{ id, email, display_name, deletion_scheduled_for }`. `id` is the token's `sub`.
+- **ACC-1** `GET /me` creates the User row on first call and returns `{ id, email, display_name, deletion_scheduled_for, friend_code }` ([FRI-1](friends.md)). `id` is the token's `sub`.
   Tests: integration `me_creates_user_on_first_call_and_keeps_it`
 - **ACC-2** Later `GET /me` calls refresh the stored email but never overwrite the stored display name.
   Tests: integration `me_creates_user_on_first_call_and_keeps_it`
@@ -43,8 +43,9 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
 | `PATCH /me` | `200` `Me` | `401`, `404`, `422`, `500` |
 | `DELETE /me` | `204` | `401`, `404`, `500` |
 | `POST /me/restore` | `204` | `401`, `404`, `500` |
+| `POST /me/friend-code` | `200` `Me` | `401`, `404`, `500` (see [FRI-8](friends.md)) |
 
-Table `users(id, email, display_name, created_at, deletion_requested_at)`, migration `0002_users.sql`. Deleting a User row also deletes their Sessions ([SES-8](sessions.md)).
+Table `users(id, email, display_name, created_at, deletion_requested_at, friend_code)`, migrations `0002_users.sql` and `0004_friends.sql`. Deleting a User row also deletes their Sessions ([SES-8](sessions.md)) and friendships ([FRI-9](friends.md)).
 
 ## Not yet
 

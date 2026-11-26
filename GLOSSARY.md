@@ -14,6 +14,12 @@ The shared composite action that every CI job uses, passing only variables such 
 A person with an account who signs in. All Users have the same role for now.
 _Avoid_: account holder
 
+**Friend**:
+Another User a User has added by friend code. The friendship is shared by both, needs no acceptance, and either can end it.
+
+**Friend code**:
+A User's short random code that others enter to become their Friend. The User can replace it, which stops the old one working.
+
 **Game**:
 A title whose results the app knows how to record, such as Root.
 
