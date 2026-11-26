@@ -16,6 +16,8 @@ pub struct Me {
     pub display_name: String,
     /// When the account will be permanently deleted, if deletion was requested.
     pub deletion_scheduled_for: Option<DateTime<Utc>>,
+    /// What others type to add this User as a Friend: 8 characters, no dash.
+    pub friend_code: String,
 }
 
 #[derive(FromRow)]
@@ -24,6 +26,7 @@ struct Row {
     email: String,
     display_name: String,
     deletion_requested_at: Option<DateTime<Utc>>,
+    friend_code: String,
 }
 
 /// The signed-in User; created from the token on first call.
@@ -32,7 +35,7 @@ pub async fn me(State(s): State<AppState>, u: AuthUser) -> Result<Json<Me>, Stat
     let r: Row = sqlx::query_as(
         "INSERT INTO users (id, email, display_name) VALUES ($1, $2, $3)
          ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email
-         RETURNING id, email, display_name, deletion_requested_at",
+         RETURNING id, email, display_name, deletion_requested_at, friend_code",
     )
     .bind(u.id)
     .bind(&u.email)
@@ -50,6 +53,7 @@ impl From<Row> for Me {
             email: r.email,
             display_name: r.display_name,
             deletion_scheduled_for: r.deletion_requested_at.map(|t| t + Duration::days(GRACE_DAYS)),
+            friend_code: r.friend_code,
         }
     }
 }
@@ -67,10 +71,23 @@ pub async fn update_me(State(s): State<AppState>, u: AuthUser, Json(b): Json<Upd
         return Err(StatusCode::UNPROCESSABLE_ENTITY);
     }
     let r: Option<Row> = sqlx::query_as(
-        "UPDATE users SET display_name = $2 WHERE id = $1 RETURNING id, email, display_name, deletion_requested_at",
+        "UPDATE users SET display_name = $2 WHERE id = $1 RETURNING id, email, display_name, deletion_requested_at, friend_code",
     )
     .bind(u.id)
     .bind(name)
+    .fetch_optional(&s.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    r.map(|r| Json(r.into())).ok_or(StatusCode::NOT_FOUND)
+}
+
+/// Replace the signed-in User's friend code; the old one stops working and Friends stay.
+#[utoipa::path(post, path = "/me/friend-code", responses((status = 200, body = Me), (status = 401), (status = 404)))]
+pub async fn new_friend_code(State(s): State<AppState>, u: AuthUser) -> Result<Json<Me>, StatusCode> {
+    let r: Option<Row> = sqlx::query_as(
+        "UPDATE users SET friend_code = new_friend_code() WHERE id = $1 RETURNING id, email, display_name, deletion_requested_at, friend_code",
+    )
+    .bind(u.id)
     .fetch_optional(&s.db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

@@ -1,9 +1,10 @@
-use axum::{extract::State, http::StatusCode, routing::{get, post}, Json, Router};
+use axum::{extract::State, http::StatusCode, routing::{delete, get, post}, Json, Router};
 use serde::Serialize;
 use tower_http::cors::CorsLayer;
 use utoipa::{OpenApi, ToSchema};
 
 pub mod auth;
+pub mod friends;
 pub mod sessions;
 pub mod users;
 
@@ -15,7 +16,7 @@ pub struct Health {
 }
 
 #[derive(OpenApi)]
-#[openapi(paths(health, users::me, users::delete_me, users::update_me, users::restore_me, sessions::list_games, sessions::get_game, sessions::check_game, sessions::create_session, sessions::list_sessions, sessions::get_session, sessions::delete_session), components(schemas(Health, users::Me, users::UpdateMe, sessions::GameInfo, sessions::Session, sessions::NewSession, sessions::CheckSession)))]
+#[openapi(paths(health, users::me, users::delete_me, users::update_me, users::restore_me, users::new_friend_code, friends::list_friends, friends::add_friend, friends::remove_friend, sessions::list_games, sessions::get_game, sessions::check_game, sessions::create_session, sessions::list_sessions, sessions::get_session, sessions::delete_session), components(schemas(Health, users::Me, users::UpdateMe, friends::Friend, friends::AddFriend, sessions::GameInfo, sessions::Session, sessions::NewSession, sessions::CheckSession)))]
 pub struct ApiDoc;
 
 /// Liveness plus database connectivity check.
@@ -35,6 +36,9 @@ pub fn app(state: AppState) -> Router {
         .route("/openapi.json", get(openapi))
         .route("/me", get(users::me).delete(users::delete_me).patch(users::update_me))
         .route("/me/restore", post(users::restore_me))
+        .route("/me/friend-code", post(users::new_friend_code))
+        .route("/friends", get(friends::list_friends).post(friends::add_friend))
+        .route("/friends/{id}", delete(friends::remove_friend))
         .route("/games", get(sessions::list_games))
         .route("/games/{id}", get(sessions::get_game))
         .route("/games/{id}/check", post(sessions::check_game))
