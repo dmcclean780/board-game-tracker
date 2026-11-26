@@ -1,6 +1,6 @@
 import { ReactNode, useMemo } from "react";
 import { Picker } from "@react-native-picker/picker";
-import { Platform, Pressable, ScrollView, StyleSheet, Text as RNText, TextInput, TextInputProps, TextProps, View } from "react-native";
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text as RNText, TextInput, TextInputProps, TextProps, View } from "react-native";
 import { Link, LinkProps } from "expo-router";
 import { Colors, font, useTheme } from "../theme";
 
@@ -106,6 +106,22 @@ export function Button({ title, onPress, secondary, disabled }: { title: string;
   );
 }
 
+/** A dialog over the screen. Escape, the back button and a tap outside call `onClose`. */
+export function Popup({ title, visible, onClose, children }: { title: string; visible: boolean; onClose: () => void; children: ReactNode }) {
+  const s = useS();
+  return (
+    <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose}>
+      <Pressable accessible={false} style={s.backdrop} onPress={onClose}>
+        {/* Swallows presses so tapping the dialog itself does not close it. */}
+        <Pressable accessible={false} style={s.popup} onPress={() => {}}>
+          <Text accessibilityRole="header" style={s.popupTitle}>{title}</Text>
+          {children}
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
 export function Message({ text, error }: { text: string | null; error?: boolean }) {
   const s = useS();
   return text ? <Text accessibilityRole={error ? "alert" : undefined} style={error ? s.error : s.info}>{text}</Text> : null;
@@ -129,6 +145,9 @@ const styles = (c: Colors) => StyleSheet.create({
   disabled: { opacity: 0.5 },
   buttonText: { color: c.onPrimary, fontSize: 16 },
   secondaryText: { color: c.primary, fontSize: 16 },
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.5)", alignItems: "center", justifyContent: "center", padding: 16 },
+  popup: { width: "100%", maxWidth: 420, gap: 12, padding: 16, borderRadius: 8, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface },
+  popupTitle: { fontSize: 20, fontWeight: "600" },
   error: { color: c.error },
   info: { color: c.primary },
 });
