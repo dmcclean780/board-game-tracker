@@ -8,6 +8,7 @@ One file per feature area describing what the system **does today**: behaviour, 
 | [accounts.md](accounts.md) | The User record, `/me`, account deletion, restore, purge |
 | [sessions.md](sessions.md) | Recording, listing, viewing and deleting Game Sessions and their Results (Root, Arcs) |
 | [friends.md](friends.md) | Friend codes, adding and removing Friends, the Friends screen |
+| [live-updates.md](live-updates.md) | `/ws`: pushing "something changed" signals to open tabs, and the app's reconnecting socket |
 | [app-shell.md](app-shell.md) | Screen routing, auth gate, header, footer, sections |
 | [platform.md](platform.md) | `/health`, OpenAPI, CORS, configuration |
 | [local-dev.md](local-dev.md) | `tilt up`: the local development stack |

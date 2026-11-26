@@ -23,3 +23,4 @@ MADR-style, one file per decision, numbered `NNNN-slug.md`. Never edit an accept
 | [0017](0017-game-data-in-json-files.md) | Game data in a JSON file per Game crate | accepted |
 | [0018](0018-server-driven-game-forms.md) | Game forms and Result text described by the backend | accepted |
 | [0019](0019-symmetric-friends-without-consent.md) | Friends are symmetric and need no acceptance | accepted |
+| [0020](0020-live-updates-websocket-listen-notify.md) | Live updates: WebSocket signals, sent by the database with NOTIFY | accepted |

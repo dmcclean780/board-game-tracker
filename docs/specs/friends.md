@@ -28,16 +28,22 @@ All routes need a valid bearer token ([AUTH-14](authentication.md)); otherwise `
   Tests: integration `regenerating_friend_code_keeps_friends`
 - **FRI-9** Deleting a User (the purge, [ACC-8](accounts.md)) deletes their friendships.
   Tests: integration `purging_a_user_removes_their_friendships`
-- **FRI-10** The Friends screen (`/friends`) shows, top to bottom: "Your friend code" as `XXXX-XXXX` with "Copy" and "New code" buttons; a "Friend code" box with "Add friend"; the Friends list, each with "Remove".
-  Tests: jest `shows your code and, with no friends yet, a hint`; e2e `two users become friends by friend code`; Copy: none
-- **FRI-11** "Add friend" sends the box's text. On success the box is cleared and the list reloads; on failure the server's reason (FRI-4) is shown as an error.
-  Tests: jest `adds a friend by code and lists them, or shows the server's reason`; e2e `two users become friends by friend code`
+- **FRI-10** `removed`: the code and the add box were always on the screen; now FRI-15 to FRI-17.
+- **FRI-11** `removed`: now FRI-17.
 - **FRI-12** "Remove" asks first ("Remove <name>? You will no longer be friends with each other."); "Confirm remove" calls `DELETE /friends/{id}`, "Cancel" backs out.
-  Tests: jest `removing a friend asks for confirmation first`; e2e `two users become friends by friend code`
-- **FRI-13** "New code" asks first ("Your old code will stop working. Your friends stay."); "Confirm new code" calls `POST /me/friend-code` and shows the new code.
-  Tests: jest `a new code asks for confirmation, then refreshes the user`
+  Tests: jest `Friends.test.tsx` `removing a friend asks for confirmation first`; e2e `two users become friends by friend code, and see each other's changes without reloading`
+- **FRI-13** In the code popup (FRI-16), "New code" asks first ("Your old code will stop working. Your friends stay."); "Confirm new code" calls `POST /me/friend-code` and the popup shows the new code; "Cancel" backs out. A failure shows "Could not make a new code. Try again."
+  Tests: jest `a new code asks for confirmation inside the popup, then refreshes the user`; failure: none
 - **FRI-14** With no Friends the list says "No friends yet. Share your friend code or enter a friend's code above."
-  Tests: jest `shows your code and, with no friends yet, a hint`; e2e `two users become friends by friend code`
+  Tests: jest `with no friends yet the screen says so, and your code stays hidden until asked for`; e2e `two users become friends by friend code, and see each other's changes without reloading`
+- **FRI-15** The Friends screen (`/friends`) has two buttons at the top, "Show code" and "Add friend", then the Friends list, each Friend with "Remove". The friend code is not on the screen until "Show code" is pressed.
+  Tests: jest `with no friends yet the screen says so, and your code stays hidden until asked for`; e2e `two users become friends by friend code, and see each other's changes without reloading`
+- **FRI-16** "Show code" opens a popup "Your friend code" with the code as `XXXX-XXXX`, "Copy", "New code" and "Close". "Copy" puts the code on the clipboard and shows "Copied.", or "Could not copy the code." Escape, the device back button, a tap outside the popup and "Close" all close it.
+  Tests: jest `the code popup copies the code`, `with no friends yet the screen says so, and your code stays hidden until asked for` (Close); Escape, back and tap outside: none; copy failure: none
+- **FRI-17** "Add friend" opens a popup "Add a friend" with a "Friend code" box, "Add" and "Cancel". "Add" sends the box's text; on failure the server's reason (FRI-4) shows inside the popup, which stays open; on success the popup closes and the list reloads. Closing it (including "Cancel") clears the box and the error.
+  Tests: jest `an add error stays in the popup; a success closes it and lists the friend`, `cancelling the add popup clears the box and the error`; e2e `two users become friends by friend code, and see each other's changes without reloading`
+- **FRI-18** The Friends list loads when the screen is opened and reloads by itself when the server says it changed ([LIVE-4](live-updates.md), [LIVE-5](live-updates.md), [LIVE-7](live-updates.md)): another User adding, removing or renaming a Friend shows without a reload. A shown friend code follows a replacement made in another tab ([LIVE-14](live-updates.md)).
+  Tests: jest `the list refetches when the server says friends changed`; e2e `two users become friends by friend code, and see each other's changes without reloading`; the code following another tab: none
 
 ## Interfaces
 
@@ -56,4 +62,4 @@ Linking a Friend to a Player on a Session; friend requests or consent; profiles,
 
 ## Code
 
-`backend/src/friends.rs`, `backend/src/users.rs` (`new_friend_code`), `db/migrations/0004_friends.sql`, `frontend/src/app/(app)/friends.tsx`, `frontend/src/components/shell.tsx` (footer).
+`backend/src/friends.rs`, `backend/src/users.rs` (`new_friend_code`), `db/migrations/0004_friends.sql`, `frontend/src/app/(app)/friends.tsx`, `frontend/src/components/ui.tsx` (`Popup`), `frontend/src/components/shell.tsx` (footer), `frontend/src/live.ts` ([live-updates.md](live-updates.md)).
