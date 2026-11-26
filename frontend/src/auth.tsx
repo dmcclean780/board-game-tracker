@@ -18,7 +18,7 @@ export const auth = new GoTrueClient({
 /** Where email links and Google sign-in send the user back to. */
 export const appOrigin = () => (Platform.OS === "web" ? window.location.origin : undefined);
 
-export type Me = { id: string; email: string; display_name: string; deletion_scheduled_for: string | null };
+export type Me = { id: string; email: string; display_name: string; deletion_scheduled_for: string | null; friend_code: string };
 
 export function api(path: string, token: string, init: RequestInit = {}) {
   return fetch(API_URL + path, { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } });

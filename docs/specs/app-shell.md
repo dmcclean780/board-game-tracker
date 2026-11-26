@@ -29,15 +29,15 @@ Decide which screen a visitor sees from their sign-in state, and give signed-in 
 
 - **SHELL-11** A signed-in User without a scheduled deletion who opens `/` is sent to `/results`.
   Tests: e2e `sign up, verify email, sign out and sign back in` (lands on Results after sign-in)
-- **SHELL-12** Every signed-in screen has a header bar. Its top left shows the screen's title: Results, Games, Groups, Settings, "Record session" or "Session".
+- **SHELL-12** Every signed-in screen has a header bar. Its top left shows the screen's title: Results, Friends, Groups, Settings, "Record session" or "Session".
   Tests: e2e `sign up, verify email, sign out and sign back in`
 - **SHELL-13** The header's top right shows the User's display name. Pressing it opens a menu with "Account" (goes to `/settings/account`) and "Sign out".
   Tests: jest `the user menu offers Account and Sign out`; e2e `sign up, verify email, sign out and sign back in` (sign out)
-- **SHELL-14** The four sections (`/games`, `/results`, `/groups`, `/settings` and its sub pages) have a footer bar with one button each: an icon and a label. The current section is highlighted and marked selected.
+- **SHELL-14** The four sections (`/friends`, `/results`, `/groups`, `/settings` and its sub pages) have a footer bar with one button each: an icon and a label. The current section is highlighted and marked selected.
   Tests: jest `the footer marks the current section`; e2e `change the display name on the account screen` (footer to Settings)
 - **SHELL-15** "Record session" and the Session detail screen show the header with a back arrow instead of the footer. The arrow goes back, or to `/results` when there is nothing to go back to.
   Tests: none
-- **SHELL-16** Games and Groups show "Coming soon."
+- **SHELL-16** Groups shows "Coming soon." The Friends section is described in [friends.md](friends.md); it replaced the former Games placeholder.
   Tests: none
 - **SHELL-17** The Results screen lists Sessions ([SES-9](sessions.md)) and has a round "+" button in the lower right (named "Record session") that opens the Session form.
   Tests: jest `shows the empty state`; e2e `record a Root session, view it and delete it`
@@ -54,11 +54,11 @@ Decide which screen a visitor sees from their sign-in state, and give signed-in 
 
 ## Interfaces
 
-Routes in `frontend/src/app/`: `login`, `sign-up`, `forgot-password`, `reset-password`, `restore`, and, for signed-in Users without a scheduled deletion, the group `(app)`: `index` (redirect), `results`, `games`, `groups`, `settings/` (`index` redirect, `account`, `appearance`), `sessions/new` and `sessions/[id]`. Static web export (`web.output: static`), so each route is its own HTML file.
+Routes in `frontend/src/app/`: `login`, `sign-up`, `forgot-password`, `reset-password`, `restore`, and, for signed-in Users without a scheduled deletion, the group `(app)`: `index` (redirect), `results`, `friends`, `groups`, `settings/` (`index` redirect, `account`, `appearance`), `sessions/new` and `sessions/[id]`. Static web export (`web.output: static`), so each route is its own HTML file.
 
 ## Not yet
 
-Native iOS and Android; the Games and Groups sections.
+Native iOS and Android; the Groups section.
 
 ## Code
 

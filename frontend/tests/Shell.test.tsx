@@ -11,7 +11,7 @@ beforeEach(() => (useAuth as jest.Mock).mockReturnValue({ me: { display_name: "A
 test("the footer marks the current section", async () => {
   await render(<Footer />);
   expect(screen.getByLabelText("Results").props.accessibilityState.selected).toBe(true);
-  expect(screen.getByLabelText("Games").props.accessibilityState.selected).toBe(false);
+  expect(screen.getByLabelText("Friends").props.accessibilityState.selected).toBe(false);
 });
 
 test("the user menu offers Account and Sign out", async () => {

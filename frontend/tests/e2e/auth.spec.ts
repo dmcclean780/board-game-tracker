@@ -195,3 +195,28 @@ test("the form explains what is wrong and blocks going on until it is fixed", as
   await page.getByRole("button", { name: "Next" }).click();
   await expect(page.getByLabel("Player 1 name")).toHaveValue("Ada");
 });
+
+test("two users become friends by friend code", async ({ browser }) => {
+  const [ada, bo] = [await (await browser.newContext()).newPage(), await (await browser.newContext()).newPage()];
+  await signUpAndVerify(ada, uniqueEmail(), "Ada");
+  await signUpAndVerify(bo, uniqueEmail(), "Bo");
+  await ada.getByRole("link", { name: "Friends" }).click();
+  await expect(ada.getByRole("heading", { name: "Friends", exact: true }).first()).toBeVisible();
+  await expect(ada.getByText("No friends yet.")).toBeVisible();
+  await bo.getByRole("link", { name: "Friends" }).click();
+  const code = (await bo.getByText(/^[A-Z0-9]{4}-[A-Z0-9]{4}$/).textContent())!;
+  await ada.getByLabel("Friend code").fill("zzzz-zzzz");
+  await ada.getByRole("button", { name: "Add friend" }).click();
+  await expect(ada.getByText("No user has that friend code.")).toBeVisible();
+  await ada.getByLabel("Friend code").fill(code.toLowerCase());
+  await ada.getByRole("button", { name: "Add friend" }).click();
+  await expect(ada.getByText("Bo", { exact: true })).toBeVisible();
+  // The friendship is shared: Bo sees Ada after reloading, and removing it ends it for Ada too.
+  await bo.reload();
+  await expect(bo.getByText("Ada", { exact: true }).last()).toBeVisible();
+  await bo.getByRole("button", { name: "Remove" }).click();
+  await bo.getByRole("button", { name: "Confirm remove" }).click();
+  await expect(bo.getByText("No friends yet.")).toBeVisible();
+  await ada.reload();
+  await expect(ada.getByText("No friends yet.")).toBeVisible();
+});

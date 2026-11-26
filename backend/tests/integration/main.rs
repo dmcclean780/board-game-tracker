@@ -348,3 +348,100 @@ async fn purging_a_user_removes_their_sessions() {
     let n: i64 = sqlx::query_scalar("SELECT count(*) FROM sessions").fetch_one(&pool).await.unwrap();
     assert_eq!(n, 0);
 }
+
+/// Signs a User up (first `GET /me`) and returns their token, id and friend code.
+async fn sign_up(pool: &PgPool, name: &str) -> (String, Uuid, String) {
+    let id = Uuid::new_v4();
+    let t = token(id, &format!("{name}@x.com"), Some(name));
+    let (_, body) = call(pool, "GET", "/me", Some(&t)).await;
+    let me: serde_json::Value = serde_json::from_str(&body).unwrap();
+    (t, id, me["friend_code"].as_str().unwrap().to_owned())
+}
+
+async fn add_friend(pool: &PgPool, t: &str, code: &str) -> (StatusCode, String) {
+    send(pool, "POST", "/friends", t, serde_json::json!({ "code": code })).await
+}
+
+async fn friend_names(pool: &PgPool, t: &str) -> Vec<String> {
+    let (_, body) = call(pool, "GET", "/friends", Some(t)).await;
+    let list: Vec<serde_json::Value> = serde_json::from_str(&body).unwrap();
+    list.iter().map(|f| f["display_name"].as_str().unwrap().to_owned()).collect()
+}
+
+#[tokio::test]
+async fn add_friend_by_code_is_shared_and_removable() {
+    let (pool, _node) = db().await;
+    let (ada, ada_id, ada_code) = sign_up(&pool, "Ada").await;
+    let (bo, bo_id, bo_code) = sign_up(&pool, "bo").await;
+    let (cy, _, cy_code) = sign_up(&pool, "Cy").await;
+    assert_eq!(ada_code.len(), 8);
+    assert!(ada_code.chars().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit()), "{ada_code}");
+    assert_eq!(friend_names(&pool, &ada).await, Vec::<String>::new());
+    // Lower case, a dash and spaces are all accepted.
+    let typed = format!(" {}-{} ", &bo_code[..4].to_lowercase(), &bo_code[4..].to_lowercase());
+    let (status, body) = add_friend(&pool, &ada, &typed).await;
+    assert_eq!(status, StatusCode::CREATED, "{body}");
+    assert!(body.contains(r#""display_name":"bo""#), "{body}");
+    assert_eq!(add_friend(&pool, &ada, &cy_code).await.0, StatusCode::CREATED);
+    // Both sides see each other; each list is sorted A to Z ignoring case.
+    assert_eq!(friend_names(&pool, &ada).await, ["bo", "Cy"]);
+    assert_eq!(friend_names(&pool, &bo).await, ["Ada"]);
+    assert_eq!(friend_names(&pool, &cy).await, ["Ada"]);
+    // Either side can end it, and it ends for both.
+    assert_eq!(call(&pool, "DELETE", &format!("/friends/{ada_id}"), Some(&bo)).await.0, StatusCode::NO_CONTENT);
+    assert_eq!(friend_names(&pool, &ada).await, ["Cy"]);
+    assert!(friend_names(&pool, &bo).await.is_empty());
+    assert_eq!(call(&pool, "DELETE", &format!("/friends/{ada_id}"), Some(&bo)).await.0, StatusCode::NOT_FOUND);
+    assert_eq!(call(&pool, "DELETE", &format!("/friends/{bo_id}"), Some(&ada)).await.0, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn add_friend_rejects_bad_codes() {
+    let (pool, _node) = db().await;
+    let (ada, _, ada_code) = sign_up(&pool, "Ada").await;
+    let (bo, _, bo_code) = sign_up(&pool, "Bo").await;
+    let (_, _, cy_code) = sign_up(&pool, "Cy").await;
+    let expect = |r: (StatusCode, String), msg: &str| assert_eq!(r, (StatusCode::UNPROCESSABLE_ENTITY, msg.to_owned()));
+    expect(add_friend(&pool, &ada, "ZZZZ-ZZZZ").await, "No user has that friend code.");
+    expect(add_friend(&pool, &ada, "").await, "No user has that friend code.");
+    expect(add_friend(&pool, &ada, &ada_code).await, "That is your own friend code.");
+    assert_eq!(add_friend(&pool, &ada, &bo_code).await.0, StatusCode::CREATED);
+    expect(add_friend(&pool, &ada, &bo_code).await, "Bo is already your friend.");
+    expect(add_friend(&pool, &bo, &ada_code).await, "Ada is already your friend.");
+    // A User with a scheduled deletion cannot be added, but stays listed for existing Friends.
+    sqlx::query("UPDATE users SET deletion_requested_at = now() WHERE friend_code = $1").bind(&cy_code).execute(&pool).await.unwrap();
+    expect(add_friend(&pool, &ada, &cy_code).await, "No user has that friend code.");
+    sqlx::query("UPDATE users SET deletion_requested_at = now() WHERE friend_code = $1").bind(&bo_code).execute(&pool).await.unwrap();
+    assert_eq!(friend_names(&pool, &ada).await, ["Bo"]);
+}
+
+#[tokio::test]
+async fn regenerating_friend_code_keeps_friends() {
+    let (pool, _node) = db().await;
+    let (ada, _, old) = sign_up(&pool, "Ada").await;
+    let (bo, _, bo_code) = sign_up(&pool, "Bo").await;
+    let (cy, _, _) = sign_up(&pool, "Cy").await;
+    add_friend(&pool, &ada, &bo_code).await;
+    let (status, body) = call(&pool, "POST", "/me/friend-code", Some(&ada)).await;
+    assert_eq!(status, StatusCode::OK);
+    let new = serde_json::from_str::<serde_json::Value>(&body).unwrap()["friend_code"].as_str().unwrap().to_owned();
+    assert_ne!(new, old);
+    assert_eq!(friend_names(&pool, &bo).await, ["Ada"]);
+    assert_eq!(add_friend(&pool, &cy, &old).await, (StatusCode::UNPROCESSABLE_ENTITY, "No user has that friend code.".to_owned()));
+    assert_eq!(add_friend(&pool, &cy, &new).await.0, StatusCode::CREATED);
+    // No row yet: 404.
+    let ghost = token(Uuid::new_v4(), "g@x.com", Some("G"));
+    assert_eq!(call(&pool, "POST", "/me/friend-code", Some(&ghost)).await.0, StatusCode::NOT_FOUND);
+}
+
+#[tokio::test]
+async fn purging_a_user_removes_their_friendships() {
+    let (pool, _node) = db().await;
+    let (ada, ada_id, _) = sign_up(&pool, "Ada").await;
+    let (bo, _, bo_code) = sign_up(&pool, "Bo").await;
+    add_friend(&pool, &ada, &bo_code).await;
+    sqlx::query("DELETE FROM users WHERE id = $1").bind(ada_id).execute(&pool).await.unwrap();
+    assert!(friend_names(&pool, &bo).await.is_empty());
+    let n: i64 = sqlx::query_scalar("SELECT count(*) FROM friendships").fetch_one(&pool).await.unwrap();
+    assert_eq!(n, 0);
+}
