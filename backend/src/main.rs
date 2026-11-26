@@ -23,6 +23,7 @@ async fn main() {
         }
     });
 
+    let hub = bgt_backend::live::Hub::start(&db).await.expect("live updates listener failed");
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await.unwrap();
-    axum::serve(listener, bgt_backend::app(AppState { db, auth })).await.unwrap();
+    axum::serve(listener, bgt_backend::app(AppState { db, auth, hub })).await.unwrap();
 }

@@ -1,6 +1,7 @@
 import { GoTrueClient, Session } from "@supabase/auth-js";
-import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Platform } from "react-native";
+import { openLive, useLive } from "./live";
 
 const AUTH_URL = process.env.EXPO_PUBLIC_AUTH_URL ?? "http://localhost:9999";
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://localhost:3000";
@@ -58,6 +59,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [token]);
   useEffect(() => void refreshMe(), [refreshMe]);
+
+  // One socket per signed-in tab. The token is read at each (re)connect, so a refreshed one is used.
+  const tokenRef = useRef(token);
+  useEffect(() => void (tokenRef.current = token));
+  const signedIn = !!token;
+  useEffect(() => (signedIn ? openLive(API_URL.replace(/^http/, "ws") + "/ws", () => tokenRef.current) : undefined), [signedIn]);
+  useLive("me", refreshMe);
 
   return <Ctx.Provider value={{ session, me, meError, refreshMe }}>{children}</Ctx.Provider>;
 }

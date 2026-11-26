@@ -22,7 +22,7 @@ Operational endpoints and the configuration the backend needs to start.
 
 ## Interfaces
 
-`GET /health`, `GET /openapi.json`. Environment: see `.env.example`.
+`GET /health`, `GET /openapi.json`, `GET /ws` (WebSocket, not in the OpenAPI description; see [live-updates.md](live-updates.md)). Environment: see `.env.example`.
 
 ## Not yet
 

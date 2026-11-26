@@ -5,6 +5,7 @@ use utoipa::{OpenApi, ToSchema};
 
 pub mod auth;
 pub mod friends;
+pub mod live;
 pub mod sessions;
 pub mod users;
 
@@ -36,6 +37,7 @@ pub fn app(state: AppState) -> Router {
         .route("/openapi.json", get(openapi))
         .route("/me", get(users::me).delete(users::delete_me).patch(users::update_me))
         .route("/me/restore", post(users::restore_me))
+        .route("/ws", get(live::ws))
         .route("/me/friend-code", post(users::new_friend_code))
         .route("/friends", get(friends::list_friends).post(friends::add_friend))
         .route("/friends/{id}", delete(friends::remove_friend))
@@ -61,7 +63,7 @@ mod tests {
         // Lazy pool never connects, so no database is needed for unit tests.
         let db = PgPool::connect_lazy("postgres://unused@localhost/unused").unwrap();
         let auth = Auth { url: String::new(), jwt_secret: "s".into(), service_key: String::new(), http: reqwest::Client::new() };
-        let res = app(AppState { db, auth }).oneshot(Request::get("/openapi.json").body(Body::empty()).unwrap()).await.unwrap();
+        let res = app(AppState { db, auth, hub: Default::default() }).oneshot(Request::get("/openapi.json").body(Body::empty()).unwrap()).await.unwrap();
         assert_eq!(res.status(), StatusCode::OK);
         let body = http_body_util::BodyExt::collect(res.into_body()).await.unwrap().to_bytes();
         let body = String::from_utf8_lossy(&body);

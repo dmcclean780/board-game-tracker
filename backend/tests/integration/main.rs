@@ -24,13 +24,18 @@ async fn db() -> (PgPool, ContainerAsync<Postgres>) {
 }
 
 fn state(db: PgPool, auth_url: &str) -> AppState {
-    AppState { db, auth: Auth { url: auth_url.into(), jwt_secret: SECRET.into(), service_key: "svc".into(), http: reqwest::Client::new() } }
+    AppState { db, hub: Default::default(), auth: Auth { url: auth_url.into(), jwt_secret: SECRET.into(), service_key: "svc".into(), http: reqwest::Client::new() } }
 }
 
 /// A token as the auth provider would issue it for `id`.
 fn token(id: Uuid, email: &str, name: Option<&str>) -> String {
+    token_exp(id, email, name, 4_102_444_800)
+}
+
+/// Like `token`, expiring at `exp` (seconds since the epoch).
+fn token_exp(id: Uuid, email: &str, name: Option<&str>, exp: u64) -> String {
     let claims = serde_json::json!({
-        "sub": id, "email": email, "aud": "authenticated", "exp": 4_102_444_800u64,
+        "sub": id, "email": email, "aud": "authenticated", "exp": exp,
         "user_metadata": { "display_name": name },
     });
     jsonwebtoken::encode(&jsonwebtoken::Header::default(), &claims, &jsonwebtoken::EncodingKey::from_secret(SECRET.as_bytes())).unwrap()
@@ -444,4 +449,119 @@ async fn purging_a_user_removes_their_friendships() {
     assert!(friend_names(&pool, &bo).await.is_empty());
     let n: i64 = sqlx::query_scalar("SELECT count(*) FROM friendships").fetch_one(&pool).await.unwrap();
     assert_eq!(n, 0);
+}
+
+// --- live updates over /ws ---
+
+use futures_util::{SinkExt, StreamExt};
+use tokio_tungstenite::{connect_async, tungstenite::Message, MaybeTlsStream, WebSocketStream};
+
+type Ws = WebSocketStream<MaybeTlsStream<tokio::net::TcpStream>>;
+
+/// Runs the real app, with its NOTIFY listener, on a free port and returns the address.
+async fn serve(pool: &PgPool) -> String {
+    let mut state = state(pool.clone(), "http://unused");
+    state.hub = bgt_backend::live::Hub::start(pool).await.unwrap();
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let addr = listener.local_addr().unwrap().to_string();
+    tokio::spawn(async move { axum::serve(listener, bgt_backend::app(state)).await.unwrap() });
+    addr
+}
+
+async fn connect(addr: &str, first_message: Option<&str>) -> Ws {
+    let (mut ws, _) = connect_async(format!("ws://{addr}/ws")).await.unwrap();
+    if let Some(m) = first_message {
+        ws.send(Message::text(m)).await.unwrap();
+    }
+    ws
+}
+
+async fn next_text(ws: &mut Ws, secs: u64) -> String {
+    match tokio::time::timeout(Duration::from_secs(secs), ws.next()).await {
+        Ok(Some(Ok(Message::Text(t)))) => t.to_string(),
+        other => panic!("expected a text message, got {other:?}"),
+    }
+}
+
+/// Connects with `token` and waits until the server says it is listening.
+async fn listen_as(addr: &str, token: &str) -> Ws {
+    let mut ws = connect(addr, Some(token)).await;
+    assert_eq!(next_text(&mut ws, 3).await, r#"{"type":"ready"}"#);
+    ws
+}
+
+async fn assert_closes_within(ws: &mut Ws, secs: u64) {
+    let end = tokio::time::Instant::now() + Duration::from_secs(secs);
+    loop {
+        match tokio::time::timeout_at(end, ws.next()).await {
+            Ok(None | Some(Err(_)) | Some(Ok(Message::Close(_)))) => return,
+            Ok(Some(Ok(_))) => continue,
+            Err(_) => panic!("the socket is still open"),
+        }
+    }
+}
+
+#[tokio::test]
+async fn ws_pushes_friend_changes_to_both_users() {
+    let (pool, _node) = db().await;
+    let addr = serve(&pool).await;
+    let (ada, ada_id, _) = sign_up(&pool, "Ada").await;
+    let (bo, _, bo_code) = sign_up(&pool, "Bo").await;
+    let (mut wa, mut wb) = (listen_as(&addr, &ada).await, listen_as(&addr, &bo).await);
+    add_friend(&pool, &ada, &bo_code).await;
+    assert_eq!(next_text(&mut wa, 3).await, r#"{"type":"friends"}"#);
+    assert_eq!(next_text(&mut wb, 3).await, r#"{"type":"friends"}"#);
+    call(&pool, "DELETE", &format!("/friends/{ada_id}"), Some(&bo)).await;
+    assert_eq!(next_text(&mut wa, 3).await, r#"{"type":"friends"}"#);
+    assert_eq!(next_text(&mut wb, 3).await, r#"{"type":"friends"}"#);
+}
+
+#[tokio::test]
+async fn ws_closes_without_a_valid_token() {
+    let (pool, _node) = db().await;
+    let addr = serve(&pool).await;
+    let mut bad = connect(&addr, Some("not a token")).await;
+    assert_closes_within(&mut bad, 3).await;
+    // Nothing sent: the server gives up after 5 s.
+    let mut silent = connect(&addr, None).await;
+    assert_closes_within(&mut silent, 8).await;
+}
+
+#[tokio::test]
+async fn ws_pushes_renames_to_friends_and_me_to_the_user() {
+    let (pool, _node) = db().await;
+    let addr = serve(&pool).await;
+    let (ada, _, _) = sign_up(&pool, "Ada").await;
+    let (bo, _, bo_code) = sign_up(&pool, "Bo").await;
+    add_friend(&pool, &ada, &bo_code).await;
+    let (mut wa, mut wb) = (listen_as(&addr, &ada).await, listen_as(&addr, &bo).await);
+    send(&pool, "PATCH", "/me", &ada, serde_json::json!({ "display_name": "Adele" })).await;
+    assert_eq!(next_text(&mut wb, 3).await, r#"{"type":"friends"}"#);
+    assert_eq!(next_text(&mut wa, 3).await, r#"{"type":"me"}"#);
+    // A new friend code concerns only the owner.
+    call(&pool, "POST", "/me/friend-code", Some(&ada)).await;
+    assert_eq!(next_text(&mut wa, 3).await, r#"{"type":"me"}"#);
+    assert!(tokio::time::timeout(Duration::from_millis(500), wb.next()).await.is_err(), "Bo should hear nothing");
+}
+
+#[tokio::test]
+async fn ws_closes_when_the_token_expires() {
+    let (pool, _node) = db().await;
+    let addr = serve(&pool).await;
+    let in_two_seconds = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_secs() + 2;
+    let t = token_exp(Uuid::new_v4(), "ada@x.com", Some("Ada"), in_two_seconds);
+    let mut ws = listen_as(&addr, &t).await;
+    assert_closes_within(&mut ws, 5).await;
+}
+
+#[tokio::test]
+async fn purge_notifies_friends() {
+    let (pool, _node) = db().await;
+    let addr = serve(&pool).await;
+    let (ada, ada_id, _) = sign_up(&pool, "Ada").await;
+    let (bo, _, bo_code) = sign_up(&pool, "Bo").await;
+    add_friend(&pool, &ada, &bo_code).await;
+    let mut wb = listen_as(&addr, &bo).await;
+    sqlx::query("DELETE FROM users WHERE id = $1").bind(ada_id).execute(&pool).await.unwrap();
+    assert_eq!(next_text(&mut wb, 3).await, r#"{"type":"friends"}"#);
 }
