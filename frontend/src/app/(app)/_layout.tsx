@@ -3,7 +3,7 @@ import { View } from "react-native";
 import { useTheme } from "../../theme";
 import { Footer, Header, SECTIONS, inSection } from "../../components/shell";
 
-const TITLES: Record<string, string> = { "/results": "Results", "/games": "Games", "/groups": "Groups", "/sessions/new": "Record session" };
+const TITLES: Record<string, string> = { "/results": "Results", "/friends": "Friends", "/groups": "Groups", "/sessions/new": "Record session" };
 
 /** Header and footer around every screen a signed-in User sees; sub-screens get a back arrow and no footer. */
 export default function AppLayout() {

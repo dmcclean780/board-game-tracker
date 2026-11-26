@@ -8,7 +8,7 @@ import { Colors, useTheme } from "../theme";
 import { Text } from "./ui";
 
 export const SECTIONS = [
-  { path: "/games", label: "Games", icon: "dice-outline" },
+  { path: "/friends", label: "Friends", icon: "person-add-outline" },
   { path: "/results", label: "Results", icon: "trophy-outline" },
   { path: "/groups", label: "Groups", icon: "people-outline" },
   { path: "/settings", label: "Settings", icon: "settings-outline" },
